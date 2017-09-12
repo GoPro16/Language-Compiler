@@ -39,6 +39,8 @@ public class Symbol {
     public String toString(){
         return name;
     }
-
+    public TokenType getType(){
+        return type;
+    }
 
 }

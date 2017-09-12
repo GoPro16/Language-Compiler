@@ -10,15 +10,37 @@ public class TokenBuilder {
     }
 
     public void addChar(char c){
-        if(token == null){
+        if(token == null) {
             token = new Token();
-            if(Character.isDigit(c)){
-                token.setType(TokenType.NUM);
-            }else{
-                token.setType(TokenType.ID);
+            Symbol temp = SymbolTable.find(Character.toString(c));
+            if (temp != null) {
+                token = new Token(Character.toString(c), temp.getType());
+            } else {
+                if (Character.isDigit(c)) {
+                    token.setType(TokenType.NUM);
+                } else {
+                    token.setType(TokenType.ID);
+                }
+                token.addChar(c);
             }
+        }else{
+            Symbol temp = SymbolTable.find(token.toString()+c);
+            if(temp != null){
+                token.setType(temp.getType());
+            }else{
+                switch(token.getType()){
+                    default:
+                        ID:
+                        if(Character.isDigit(c)){
+                            create();
+                            token = new Token(c,TokenType.ERROR);
+                        }
+                        break;
+
+                }
+            }
+            token.addChar(c);
         }
-        token.addChar(c);
     }
 
     public Token getCurrentToken(){

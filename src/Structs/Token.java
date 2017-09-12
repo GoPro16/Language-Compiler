@@ -7,7 +7,10 @@ public class Token {
 
     public Token(){value="";}
 
-
+    public Token(char value, TokenType type){
+        this.value = Character.toString(value);
+        this.type = type;
+    }
     public Token(String value,TokenType type){
         this.value = value;
         this.type = type;
@@ -45,6 +48,9 @@ public class Token {
                 return "FLOAT: "+value;
             case ID:
                 return "ID: "+value;
+            case COM:
+            case NCOM:
+                return null;
             default:
                 return value;
         }
