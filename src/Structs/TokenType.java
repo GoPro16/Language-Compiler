@@ -1,0 +1,5 @@
+package Structs;
+
+public enum TokenType {
+    TOKEN,ID,EXP,BRACES,BRACKETS,PARENS,NUM,KEYWORD,ERROR,NCOM,COM,FLOAT
+}
