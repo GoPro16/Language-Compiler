@@ -18,33 +18,55 @@ public class TokenBuilder {
             } else {
                 if (Character.isDigit(c)) {
                     token.setType(TokenType.NUM);
-                } else {
+                } else if(Character.toString(c).matches(".*[a-z].*")){
                     token.setType(TokenType.ID);
+                }else{
+                    token.setType(TokenType.ERROR);
                 }
                 token.addChar(c);
             }
-        }else{
-            Symbol temp = SymbolTable.find(token.toString()+c);
-            if(temp != null){
-                token.setType(temp.getType());
-            }else{
-                switch(token.getType()){
-                    default:
-                        ID:
-                        if(Character.isDigit(c)){
-                            create();
-                            token = new Token(c,TokenType.ERROR);
-                        }
-                        break;
-
-                }
+        }else if(token.getType() == TokenType.ERROR) {
+            Symbol temp = SymbolTable.find(Character.toString(c));
+            if(temp != null) {
+                create();
+            }else {
+                token.addChar(c);
             }
-            token.addChar(c);
+        }else{
+                Symbol temp = SymbolTable.find(token.toString()+c);
+                if(temp != null){
+                    token.setType(temp.getType());
+                }else{
+                    switch(token.getType()){
+                            case ID:
+                            if(Character.isDigit(c) || !(token.toString()+c).matches(".*[a-z].*")){
+                                create();
+                                token = new Token(c,TokenType.ERROR);
+                            }
+                            break;
+                           case NUM:
+                            if(!((token.toString()+c).matches(".*[0-9].*"))){
+                                System.out.println("NOT A NUMBER:"+c);
+                                create();
+                                token = new Token(c,TokenType.ERROR);
+                            }
+                               break;
+                    }
+                }
+                token.addChar(c);
+            }
         }
-    }
 
     public Token getCurrentToken(){
         return token;
+    }
+
+    public void addErrorChar(char c){
+        if(token == null){
+            token = new Token(c,TokenType.ERROR);
+        }else{
+            token.addChar(c);
+        }
     }
 
 

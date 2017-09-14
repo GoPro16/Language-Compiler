@@ -1,9 +1,6 @@
 package Main;
 
-import Structs.Token;
-import Structs.TokenBuilder;
-import Structs.TokenType;
-import Structs.SymbolTable;
+import Structs.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -57,38 +54,61 @@ public class Program {
                 //if there is no comment block, check for special tokens
                 switch(c){
                     case '(':
-                        tokenList.add(tokenBuilder.create());
-                        tokenList.add(new Token("(",TokenType.PARENS));
-                        continue;
                     case ')':
-                        tokenList.add(tokenBuilder.create());
-                        tokenList.add(new Token(")",TokenType.PARENS));
-                        continue;
                     case '{':
-                        tokenList.add(tokenBuilder.create());
-                        tokenList.add(new Token("{",TokenType.BRACKETS));
-                        continue;
                     case '}':
-                        tokenList.add(tokenBuilder.create());
-                        tokenList.add(new Token("}",TokenType.BRACKETS));
+                    case '*':
+                    case ',':
+                    case '[':
+                    case ';':
+                    case ']':
+                        popToken();
+                        tokenList.add(new Token(c,TokenType.EXP));
+                        System.out.println(c);
+                        continue;
+                    case '+':
+                    case '-':
+                        if(x+1>chars.length){
+                            popToken();
+                            tokenBuilder.addErrorChar(c);
+                        }else{
+                            if(tokenBuilder.getCurrentToken() != null){
+                                if(tokenBuilder.getCurrentToken().getType() != TokenType.NUM){
+                                    popToken();
+                                    tokenList.add(new Token(c,TokenType.EXP));
+                                }//if the current token is not a number currentlys
+                            }else{
+                                if(Character.isDigit(chars[x+1]) && chars[x-1] == 'E'){
+                                    popToken();
+                                    tokenBuilder.addErrorChar(c);
+                                }else if(chars[x+1] == ' '){
+                                    tokenList.add(new Token(c,TokenType.EXP));
+                                }else{
+                                    tokenBuilder.addErrorChar(c);
+                                }//if the next token is a digit
+                            }//if the current token is null
+                        }
+                        System.out.println(c);
                         continue;
                     case '/':
-                        if(tokenBuilder.getCurrentToken() != null){
-                            tokenList.add(tokenBuilder.create());
-                        }
                         if(x+1 > chars.length){
+                            popToken();
                             tokenList.add(new Token("/",TokenType.KEYWORD));
+                            System.out.println('/');
                             continue;
                         }else{
                             switch(chars[++x]){
                                 case '/':
+                                    popToken();
                                     tokenList.add(new Token("//",TokenType.COM));
                                     return true;
                                 case '*':
+                                    popToken();
                                     tokenList.add(new Token("/*",TokenType.NCOM));
                                     ++commentBlockCount;
                                     break;
                                 default:
+                                    popToken();
                                     tokenList.add(new Token("/",TokenType.EXP));
                                     break;
                             }//check if comment block or just divide by sign
@@ -102,7 +122,7 @@ public class Program {
             }else if(tokenBuilder.getCurrentToken() != null){
                     if(!tokenBuilder.getCurrentToken().checkType(c)){
                         tokenList.add(tokenBuilder.create());
-                        tokenBuilder.addChar(c);
+                        tokenBuilder.addErrorChar(c);
                     }else {
                         tokenBuilder.addChar(c);
                     }
@@ -118,6 +138,12 @@ public class Program {
 
     public boolean parseChar(char c) {
         return false;
+    }
+
+    public void popToken(){
+        if(tokenBuilder.getCurrentToken() != null){
+            tokenList.add(tokenBuilder.create());
+        }
     }
 
     public void printList(){

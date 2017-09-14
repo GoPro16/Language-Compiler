@@ -51,6 +51,10 @@ public class Token {
             case COM:
             case NCOM:
                 return null;
+            case KEYWORD:
+                return "keyword: "+value;
+            case ERROR:
+                return "ERROR:"+value;
             default:
                 return value;
         }
