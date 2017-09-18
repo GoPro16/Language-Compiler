@@ -23,9 +23,7 @@ public class Token {
     public boolean checkType(char c){
         switch(type){
             case NUM:
-                return (value+c).chars().allMatch(Character::isDigit);
-            case FLOAT:
-                return (value+c).matches("^[0-9]");
+                return (value+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?");
             case ID:
                 return (value+c).chars().allMatch(Character::isLetter);
             default:

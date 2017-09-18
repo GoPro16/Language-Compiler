@@ -44,13 +44,16 @@ public class TokenBuilder {
                                 token = new Token(c,TokenType.ERROR);
                             }
                             break;
+                        case KEYWORD:
+                            token.setType(TokenType.ID);
+                            break;
                            case NUM:
-                            if(!((token.toString()+c).matches(".*[0-9].*"))){
+                            if(!((token.toString()+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?"))){
                                 System.out.println("NOT A NUMBER:"+c);
                                 create();
                                 token = new Token(c,TokenType.ERROR);
                             }
-                               break;
+                            break;
                     }
                 }
                 token.addChar(c);
