@@ -151,6 +151,7 @@ public class Program {
                                     ++x;
                                 }else{
                                     isNum = false;
+                                    --x;
                                 }
                                 break;
                             case "-":
@@ -161,6 +162,7 @@ public class Program {
                                     ++x;
                                 }else{
                                     isNum = false;
+                                    --x;
                                 }
                                 break;
                             default:
@@ -196,9 +198,14 @@ public class Program {
 
                         }
                     }while(running && isNum && (x < chars.length));
-                    if(!isNum){
+                    if(!isNum || !tokenBuilder.getCurrentToken().toString().matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?")){
                         tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
                         tokenBuilder.create();
+                    }else if(Character.isLetter(c)){
+                        tokenBuilder.create();
+                        tokenBuilder.addChar(c);
+                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+                        ++x;
                     }else{
                         tokenBuilder.create();
                     }
