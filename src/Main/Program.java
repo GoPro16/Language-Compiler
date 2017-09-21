@@ -16,7 +16,7 @@ public class Program {
         commentBlockCount = 0;
         tokenBuilder = new TokenBuilder();
         reader = new BufferedReader(new FileReader(f));
-        tokenList = new ArrayList();
+        tokenList = new ArrayList<Token>();
         String line;
         while((line = reader.readLine()) != null){
             if(line.trim().length() != 0){
@@ -61,25 +61,10 @@ public class Program {
                     case '[':
                     case ';':
                     case ']':
+                    case '*':
                         popToken();
                         tokenList.add(new Token(c,TokenType.EXP));
                         System.out.println(c);
-                        continue;
-                    case '*':
-                        popToken();
-                        if(x+1>chars.length){
-                            System.out.println('*');
-                            tokenList.add(new Token(c,TokenType.EXP));
-                        }else{
-                            if(chars[x+1] == '/'){
-                                tokenList.add(new Token(Character.toString(c)+chars[x+1],TokenType.ERROR));
-                                System.out.println(tokenList.get(tokenList.size()-1).display());
-                                ++x;
-                            }else{
-                                tokenList.add(new Token(c,TokenType.EXP));
-                                System.out.println('*');
-                            }
-                        }
                         continue;
                     case '+':
                     case '-':
@@ -106,10 +91,10 @@ public class Program {
                         System.out.println(c);
                         continue;
                     case '/':
-                        if(x+1 > chars.length){
+                        if(x+1 >= chars.length){
                             popToken();
-                            tokenList.add(new Token("/",TokenType.KEYWORD));
-                            System.out.println('/');
+                            tokenList.add(new Token("/",TokenType.EXP));
+                            System.out.println("/");
                             continue;
                         }else{
                             switch(chars[x+1]){
@@ -131,7 +116,7 @@ public class Program {
                                     break;
                             }//check if comment block or just divide by sign
                             continue;
-                        }//
+                        }
                 }
             }//end special chars
             //Must be an id or a keyword
