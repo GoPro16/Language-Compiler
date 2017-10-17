@@ -1,0 +1,715 @@
+# This is a shell archive.  Save it in a file, remove anything before
+# this line, and then unpack it by entering "sh file".  Note, it may
+# create directories; files and directories will be owned by you and
+# have default permissions.
+#
+# This archive contains:
+#
+#	MainClass.java
+#	Program.java
+#	Symbol.java
+#	SymbolTable.java
+#	Token.java
+#	TokenBuilder.java
+#	TokenType.java
+#	documentation
+#	file
+#	makefile
+#	symbols
+#
+echo x - MainClass.java
+sed 's/^X//' >MainClass.java << 'END-of-MainClass.java'
+X
+Ximport java.io.File;
+Ximport java.io.IOException;
+X
+Xpublic class MainClass {
+X    public static void main(String[] args) throws IOException {
+X        SymbolTable.initTable(40, "symbols");
+X        //SymbolTable.display();
+X        new Program(new File("file"));
+X    }//end main
+X}
+END-of-MainClass.java
+echo x - Program.java
+sed 's/^X//' >Program.java << 'END-of-Program.java'
+X
+Ximport java.io.*;
+Ximport java.util.ArrayList;
+X
+Xpublic class Program {
+X
+X    private BufferedReader reader;
+X    private ArrayList<Token> tokenList;
+X    private TokenBuilder tokenBuilder;
+X    private int commentBlockCount;
+X
+X    public Program(File f) throws IOException {
+X        commentBlockCount = 0;
+X        tokenBuilder = new TokenBuilder();
+X        reader = new BufferedReader(new FileReader(f));
+X        tokenList = new ArrayList<Token>();
+X        String line;
+X        while((line = reader.readLine()) != null){
+X            if(line.trim().length() != 0){
+X                parseLine(line);
+X            }
+X        }
+X        //printList();
+X    }
+X
+X    public boolean parseLine(String line){
+X        System.out.println("INPUT: "+line);
+X        char chars[] = line.toCharArray();
+X        char c;
+X        for(int x = 0;x<chars.length;x++){
+X            c = chars[x];
+X            if(commentBlockCount > 0 && chars.length > x+1){
+X                switch(c){
+X                    case '/':
+X                        if(chars[x+1] == '*'){
+X                            tokenList.add(new Token("/*",TokenType.NCOM));
+X                            commentBlockCount++;
+X                            ++x;
+X                        }
+X                        break;
+X                    case '*':
+X                        if(chars[x+1] == '/'){
+X                            tokenList.add(new Token("*/",TokenType.NCOM));
+X                            commentBlockCount--;
+X                            ++x;
+X                        }
+X                        break;
+X                }//comment blocks
+X                continue;
+X            }else if(!(commentBlockCount > 0)){
+X                //if there is no comment block, check for special tokens
+X                switch(c){
+X                    case '(':
+X                    case ')':
+X                    case '{':
+X                    case '}':
+X                    case ',':
+X                    case '[':
+X                    case ';':
+X                    case ']':
+X                    case '*':
+X                        popToken();
+X                        tokenList.add(new Token(c,TokenType.EXP));
+X                        System.out.println(c);
+X                        continue;
+X                    case '+':
+X                    case '-':
+X                        if(x+1>chars.length){
+X                            popToken();
+X                            tokenBuilder.addErrorChar(c);
+X                        }else{
+X                            if(tokenBuilder.getCurrentToken() != null){
+X                                if(tokenBuilder.getCurrentToken().getType() != TokenType.NUM){
+X                                    popToken();
+X                                    tokenList.add(new Token(c,TokenType.EXP));
+X                                }//if the current token is not a number currentlys
+X                            }else{
+X                                if(Character.isDigit(chars[x+1]) && chars[x-1] == 'E'){
+X                                    popToken();
+X                                    tokenBuilder.addErrorChar(c);
+X                                }else if(chars[x+1] == ' '){
+X                                    tokenList.add(new Token(c,TokenType.EXP));
+X                                }else{
+X                                    tokenBuilder.addErrorChar(c);
+X                                }//if the next token is a digit
+X                            }//if the current token is null
+X                        }
+X                        System.out.println(c);
+X                        continue;
+X                    case '/':
+X                        if(x+1 >= chars.length){
+X                            popToken();
+X                            tokenList.add(new Token("/",TokenType.EXP));
+X                            System.out.println("/");
+X                            continue;
+X                        }else{
+X                            switch(chars[x+1]){
+X                                case '/':
+X                                    popToken();
+X                                    tokenList.add(new Token("//",TokenType.COM));
+X                                    ++x;
+X                                    return true;
+X                                case '*':
+X                                    popToken();
+X                                    tokenList.add(new Token("/*",TokenType.NCOM));
+X                                    ++x;
+X                                    ++commentBlockCount;
+X                                    break;
+X                                default:
+X                                    popToken();
+X                                    tokenList.add(new Token("/",TokenType.EXP));
+X                                    System.out.println('/');
+X                                    break;
+X                            }//check if comment block or just divide by sign
+X                            continue;
+X                        }
+X                }
+X            }//end special chars
+X            //Must be an id or a keyword
+X            if(c == ' ' && tokenBuilder.getCurrentToken() != null){
+X                tokenList.add(tokenBuilder.create());
+X            }else if(tokenBuilder.getCurrentToken() != null){
+X                //check if float
+X                if(tokenBuilder.getCurrentToken().getType() == TokenType.NUM){
+X                    boolean isNum = true,running = true;
+X                    do{
+X                        String temp = Character.toString(tokenBuilder.getCurrentToken().toString().toCharArray()[tokenBuilder.getCurrentToken().length()-1]);
+X                        c = chars[x];
+X                        switch(temp){
+X                            case "E":
+X                                if((temp+c).matches("E(-|\\+|\\d)")){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    isNum = false;
+X                                    --x;
+X                                }
+X                                break;
+X                            case "-":
+X                            case "+":
+X                            case ".":
+X                                if(Character.isDigit(c)){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    isNum = false;
+X                                    --x;
+X                                }
+X                                break;
+X                            default:
+X                                if((temp+c).matches("\\d+")){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    switch(c){
+X                                        case '.':
+X                                            if(tokenBuilder.getCurrentToken().toString().chars().filter(ch -> ch == '.').count() == 1){
+X                                                running = false;
+X                                                --x;
+X                                            }else{
+X                                                tokenBuilder.getCurrentToken().addChar(c);
+X                                                ++x;
+X                                            }
+X                                            break;
+X                                        case 'E':
+X                                            if(tokenBuilder.getCurrentToken().toString().chars().filter(ch -> ch == 'E').count() == 1){
+X                                                running = false;
+X                                                --x;
+X                                            }else{
+X                                                tokenBuilder.getCurrentToken().addChar(c);
+X                                                ++x;
+X                                            }
+X                                            break;
+X                                        default:
+X                                            running = false;
+X                                            --x;
+X                                            break;
+X                                    }
+X                                }
+X
+X                        }
+X                    }while(running && isNum && (x < chars.length));
+X                    if(!isNum || !tokenBuilder.getCurrentToken().toString().matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?")){
+X                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+X                        tokenBuilder.create();
+X                    }else if(Character.isLetter(c)){
+X                        tokenBuilder.create();
+X                        tokenBuilder.addChar(c);
+X                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+X                        ++x;
+X                    }else{
+X                        tokenBuilder.create();
+X                    }
+X                    continue;
+X                }//test for float
+X
+X                if(!tokenBuilder.getCurrentToken().checkType(c)){
+X                    tokenList.add(tokenBuilder.create());
+X                    tokenBuilder.addErrorChar(c);
+X                }else {
+X                    tokenBuilder.addChar(c);
+X                }
+X            }else if( c != ' ' && tokenBuilder.getCurrentToken() == null && commentBlockCount == 0){
+X                    tokenBuilder.addChar(c);
+X            }
+X        }//end for
+X        if(tokenBuilder.getCurrentToken() != null && commentBlockCount == 0){
+X            tokenList.add(tokenBuilder.create());
+X        }
+X        return true;
+X    }
+X
+X    public boolean parseChar(char c) {
+X        return false;
+X    }
+X
+X    public void popToken(){
+X        if(tokenBuilder.getCurrentToken() != null){
+X            tokenList.add(tokenBuilder.create());
+X        }
+X    }
+X
+X    public void printList(){
+X        tokenList.forEach(token -> {
+X            System.out.println(token.toString());
+X        });
+X    }
+X}//Program
+END-of-Program.java
+echo x - Symbol.java
+sed 's/^X//' >Symbol.java << 'END-of-Symbol.java'
+X
+Xpublic class Symbol {
+X
+X    private String name;
+X    private TokenType type;
+X
+X    public Symbol(String name,String type){
+X        this.name = name;
+X        switch(type){
+X            case "keyword":
+X                this.type=TokenType.KEYWORD;
+X                break;
+X            case "LD":
+X            case "RD":
+X                this.type = TokenType.PARENS;
+X                break;
+X            case "LB":
+X            case "RB":
+X                this.type = TokenType.BRACES;
+X                break;
+X            case "LBB":
+X            case "RBB":
+X                this.type = TokenType.BRACKETS;
+X                break;
+X            case "/*":
+X            case "*/":
+X                this.type = TokenType.NCOM;
+X                break;
+X            case "//":
+X                this.type = TokenType.COM;
+X                break;
+X            default:
+X                this.type= TokenType.EXP;
+X                break;
+X        }
+X    }//end constructor
+X
+X    public String toString(){
+X        return name;
+X    }
+X    public TokenType getType(){
+X        return type;
+X    }
+X
+X}
+END-of-Symbol.java
+echo x - SymbolTable.java
+sed 's/^X//' >SymbolTable.java << 'END-of-SymbolTable.java'
+X
+Ximport java.io.IOException;
+Ximport java.nio.file.Files;
+Ximport java.nio.file.Paths;
+X
+X/**
+X * Table for placing data items in
+X * an array
+X * @author Kyle
+X */
+Xpublic class SymbolTable {
+X
+X    private static Symbol[] arr; // the array of items
+X    private static int size;	//The size of the array
+X    private static int maxSearch;
+X    /**
+X     * Constructor for the TokenTable
+X     * @param siz - the size of the table
+X     * @param filename - the file containing the symbols
+X     */
+X    public static void initTable(int siz,String filename) throws IOException {
+X        size = siz;
+X        arr = new Symbol[size];
+X        maxSearch = 1;
+X
+X        Files.lines(Paths.get(filename)).forEach(line -> {
+X            String temp[] = line.split(" ");
+X            insert(new Symbol(temp[0],temp[1]));
+X        });
+X    }//end HashTable
+X
+X    public static Symbol find(String key){
+X        int walker;//walker to walk on array
+X        int count = 1;//counter for probing
+X        int  newHash;
+X        boolean found = false;
+X        int hash = hash(key);
+X        if(arr[hash] != null && arr[hash].toString().equals(key)){
+X            return arr[hash];
+X        }
+X        while(!found){
+X            walker = hash;
+X            newHash = quadP(count++);
+X            for(int x=newHash;x>0;x--){
+X                if(++walker == arr.length){
+X                    walker = 0;
+X                }
+X            }
+X            if(arr[walker] != null && arr[walker].toString().equals(key)){
+X                return arr[walker];
+X            }//if the array item is null or
+X            if(count>maxSearch){
+X                break;
+X            }
+X
+X
+X        }
+X        return null;
+X    }
+X
+X    /**
+X     * Hashes the given string
+X     * @param s - the string to hash
+X     * @return - the value of the hashed string
+X     */
+X    public static int hash(String s){
+X        int hash = 0;
+X        char[] arr = s.toCharArray();
+X        hash=arr[0];
+X        for(int x=1;x<arr.length;x++){
+X            hash=(hash*26+arr[x])%size;
+X        }//hash the string
+X        hash%=size;//Just in case its one character(will not affect if more)
+X        return hash;
+X    }//end hash
+X
+X    /**
+X     * Insertion method for hash table
+X     * @param item - the item to be inserted
+X     */
+X    public static void insert(Symbol item){
+X        //Hash
+X        String s = item.toString();
+X        int hash = hash(s);
+X
+X        //insert
+X        if(arr[hash] == null){
+X            arr[hash] = item;
+X        }else{//if the index is null or there is a deleted item
+X            probeInsert(hash,item);
+X        }//else probe until valid insertion
+X    }//end insert
+X
+X    /**
+X     * probeInsertion
+X     * @param hash - the hash value of the string
+X     * @param item - the item to be inserted
+X     */
+X    public static void probeInsert(int hash,Symbol item){
+X        boolean isFound = false;//boolean to know when found
+X        int walker = hash;//walker to walk on array
+X        int count = 1;//counter for probing
+X        int  newHash = hash;//New hash value
+X
+X        while(!isFound){
+X            walker = hash;
+X            newHash = quadP(count++);
+X            for(int x=newHash;x>0;x--){
+X                if(++walker == arr.length){
+X                    walker = 0;
+X                }
+X            }
+X            if(arr[walker]== null){
+X                arr[walker] = item;
+X                isFound = true;
+X            }//if the array item is null or
+X        }//while the item position isn't found
+X        if(count>maxSearch){
+X            maxSearch = count;
+X        }
+X    }//end probeInsert
+X
+X    //Used if using quadratic probing
+X    public static int quadP(int x){
+X        return x*x;
+X    }//end quadP
+X
+X    public static void display(){
+X        for (Symbol symbol : arr) {
+X            if(symbol != null)
+X                System.out.println(symbol.toString());
+X        }
+X    }
+X
+X
+X}//end HashTable
+END-of-SymbolTable.java
+echo x - Token.java
+sed 's/^X//' >Token.java << 'END-of-Token.java'
+X
+Xpublic class Token {
+X
+X    private TokenType type;
+X    private String value;
+X
+X    public Token(){value="";}
+X
+X    public Token(char value, TokenType type){
+X        this.value = Character.toString(value);
+X        this.type = type;
+X    }
+X    public Token(String value,TokenType type){
+X        this.value = value;
+X        this.type = type;
+X    }
+X
+X    public void setType(TokenType type){
+X        this.type = type;
+X    }
+X
+X    public boolean checkType(char c){
+X        switch(type){
+X            case NUM:
+X                return (value+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?");
+X            case ID:
+X                return (value+c).chars().allMatch(Character::isLetter);
+X            default:
+X                return true;
+X        }
+X    }
+X
+X    public int length(){
+X        return value.length();
+X    }
+X    public TokenType getType(){
+X        return type;
+X    }
+X
+X    public String display(){
+X        switch(type){
+X            case NUM:
+X                return "NUM: "+value;
+X            case FLOAT:
+X                return "FLOAT: "+value;
+X            case ID:
+X                return "ID: "+value;
+X            case COM:
+X            case NCOM:
+X                return null;
+X            case KEYWORD:
+X                return "keyword: "+value;
+X            case ERROR:
+X                return "ERROR:"+value;
+X            default:
+X                return value;
+X        }
+X    }
+X
+X
+X    public void addChar(char c){
+X        value+=c;
+X    }
+X
+X    public String toString(){
+X        return value;
+X    }
+X
+X}
+END-of-Token.java
+echo x - TokenBuilder.java
+sed 's/^X//' >TokenBuilder.java << 'END-of-TokenBuilder.java'
+X
+Xpublic class TokenBuilder {
+X
+X    private Token token;
+X    private int depth;
+X
+X    public TokenBuilder(){
+X        depth = 0;
+X    }
+X
+X    public void addChar(char c){
+X        if(token == null) {
+X            token = new Token();
+X            Symbol temp = SymbolTable.find(Character.toString(c));
+X            if (temp != null) {
+X                token = new Token(Character.toString(c), temp.getType());
+X            } else {
+X                if (Character.isDigit(c)) {
+X                    token.setType(TokenType.NUM);
+X                } else if(Character.toString(c).matches(".*[a-z].*")){
+X                    token.setType(TokenType.ID);
+X                }else{
+X                    token.setType(TokenType.ERROR);
+X                }
+X                token.addChar(c);
+X            }
+X        }else if(token.getType() == TokenType.ERROR) {
+X            Symbol temp = SymbolTable.find(Character.toString(c));
+X            if(temp != null) {
+X                create();
+X            }else {
+X                token.addChar(c);
+X            }
+X        }else{
+X                Symbol temp = SymbolTable.find(token.toString()+c);
+X                if(temp != null){
+X                    token.setType(temp.getType());
+X                }else{
+X                    switch(token.getType()){
+X                            case ID:
+X                            if(Character.isDigit(c) || !(token.toString()+c).matches(".*[a-z].*")){
+X                                create();
+X                                token = new Token(c,TokenType.ERROR);
+X                            }
+X                            break;
+X                        case KEYWORD:
+X                            token.setType(TokenType.ID);
+X                            break;
+X                           case NUM:
+X                            if(!((token.toString()+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?"))){
+X                                System.out.println("NOT A NUMBER:"+c);
+X                                create();
+X                                token = new Token(c,TokenType.ERROR);
+X                            }
+X                            break;
+X                    }
+X                }
+X                token.addChar(c);
+X            }
+X        }
+X
+X    public Token getCurrentToken(){
+X        return token;
+X    }
+X
+X    public void addErrorChar(char c){
+X        if(token == null){
+X            token = new Token(c,TokenType.ERROR);
+X        }else{
+X            token.addChar(c);
+X        }
+X    }
+X
+X
+X    public Token create(){
+X        Token t = token;
+X        System.out.println(token.display());
+X        token = null;
+X        return t;
+X    }
+X}
+END-of-TokenBuilder.java
+echo x - TokenType.java
+sed 's/^X//' >TokenType.java << 'END-of-TokenType.java'
+X
+Xpublic enum TokenType {
+X    ID,EXP,BRACES,BRACKETS,PARENS,NUM,KEYWORD,ERROR,NCOM,COM,FLOAT,END
+X}
+END-of-TokenType.java
+echo x - documentation
+sed 's/^X//' >documentation << 'END-of-documentation'
+XKyle Gray
+XN01038185
+XCOP 4620 Fall 2017
+X
+XProject 1
+XLexical Analyzer
+X
+XOverall Design
+XThe lexical analyzer takes a program and runs through the code, 
+Xcreating tokens for every keyword and id. In this phase, if there is any token mismatches, or errors,
+Xit will report the error and continue on parsing. No matter where the error is at on the specified line, 
+Xthe compiler will catch it regardless in the next phase, the parser. 
+X
+XInstructions for Running:
+X> make 
+X> ./p1 {Name of the program file}
+X
+XFiles Created:
+X-There are no files created by this program.
+X
+XRequired Files:
+X- *.java files
+X- makefile
+X- p1 script
+Xsymbols file
+X
+END-of-documentation
+echo x - file
+sed 's/^X//' >file << 'END-of-file'
+X// Test Stuff
+X/**/          /*/* */   */
+X/*/*/****This**********/*/    */
+X/**************/
+X/*************************
+Xi = 333;        ******************/
+X*/
+Xiiii = 3@33;
+Xint arr[31];
+X
+Xint g 4 cd (int u, int v)      {
+Xif(v == >= 0) return/*a comment*/ u;
+Xelse ret_urn gcd(vxxxxxxvvvvv, u-u/v*v);
+X       /* u-u/v*v == u mod v*/
+X!   
+X}
+X
+Xreturn void while       void main()
+X5001.42E+3412
+X2442.4324E-42
+X
+Xwelcome
+X//This is a comment with
+Xid = 3;
+Xint d = 4;
+Xwhile (true){
+X    print(d,3.42E-344);
+X}
+X
+X45.3E3
+X34E4
+X10e
+X10E
+XerrE = 10E;
+END-of-file
+echo x - makefile
+sed 's/^X//' >makefile << 'END-of-makefile'
+XMainClass.class:MainClass.java
+X	javac *.java
+END-of-makefile
+echo x - symbols
+sed 's/^X//' >symbols << 'END-of-symbols'
+Xfloat keyword
+Xint keyword
+Xvoid keyword
+Xif keyword
+Xelse keyword
+Xwhile keyword
+Xreturn keyword
+X( LD
+X) RD
+X{ LB
+X} RB
+X[ LBB
+X] RBB
+X; END
+X, token
+X+ token
+X- token
+X/ token
+X* token
+X> LEXP
+X< REXP
+X= EQU
+X/* NCOM
+X*/ NCOM
+X// COM
+END-of-symbols
+exit
+

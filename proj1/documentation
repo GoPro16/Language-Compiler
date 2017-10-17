@@ -1,0 +1,26 @@
+Kyle Gray
+N01038185
+COP 4620 Fall 2017
+
+Project 1
+Lexical Analyzer
+
+Overall Design
+The lexical analyzer takes a program and runs through the code, 
+creating tokens for every keyword and id. In this phase, if there is any token mismatches, or errors,
+it will report the error and continue on parsing. No matter where the error is at on the specified line, 
+the compiler will catch it regardless in the next phase, the parser. 
+
+Instructions for Running:
+> make 
+> ./p1 {Name of the program file}
+
+Files Created:
+-There are no files created by this program.
+
+Required Files:
+- *.java files
+- makefile
+- p1 script
+symbols file
+

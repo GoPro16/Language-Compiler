@@ -1,6 +1,3 @@
-package Main;
-
-import Structs.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -53,50 +50,6 @@ public class Program {
             }else if(!(commentBlockCount > 0)){
                 //if there is no comment block, check for special tokens
                 switch(c){
-                    case '!':
-                        popToken();
-                        if(x+1<chars.length){
-                            if(chars[x+1] == '='){
-                                tokenList.add(new Token("!=",TokenType.EXP));
-                                System.out.println("!=");
-                                ++x;
-                                continue;
-                            }
-                        }
-                        tokenList.add(new Token("!", TokenType.ERROR));
-                        System.out.println("ERROR: !");
-                        continue;
-                    case '=':
-                        popToken();
-                        if(x+1<chars.length){
-                            if(chars[x+1] == '='){
-                                tokenList.add(new Token("==",TokenType.EXP));
-                                System.out.println("==");
-                                ++x;
-                            }else if(chars[x+1] == '<') {
-                                tokenList.add(new Token("=<",TokenType.EXP));
-                                System.out.println("=<");
-                                ++x;
-                            }else {
-                                tokenList.add(new Token("=", TokenType.EXP));
-                                System.out.println("=");
-                            }
-                        }
-                        continue;
-                    case '>':
-                        popToken();
-                        if(x+1<chars.length){
-                            if(chars[x+1] == '='){
-                                tokenList.add(new Token(">=",TokenType.EXP));
-                                System.out.println(">=");
-                                ++x;
-                            }else{
-                                tokenList.add(new Token(">",TokenType.EXP));
-                                System.out.println(">");
-                            }
-
-                        }
-                        continue;
                     case '(':
                     case ')':
                     case '{':
