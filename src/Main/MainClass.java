@@ -11,7 +11,7 @@ public class MainClass {
         //GrammarTable.display();
         //SymbolTable.display();
         Program p1 = new Program(new File("file"));
-        p1.printList();
+        //p1.printList();
         Parser parser = new Parser(p1.getTokenList());
         parser.parse();
     }//end main

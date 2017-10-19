@@ -196,6 +196,8 @@ public class Program {
                             case ".":
                                 if(Character.isDigit(c)){
                                     tokenBuilder.getCurrentToken().addChar(c);
+                                    if(!temp.equals("+"))
+                                        tokenBuilder.getCurrentToken().setType(TokenType.FLOAT);
                                     ++x;
                                 }else{
                                     isNum = false;
