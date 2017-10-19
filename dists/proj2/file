@@ -1,0 +1,162 @@
+int i;
+int j;
+
+int array[20];
+
+int foo(int i, int j)
+{
+    int a;
+    int b[20];
+}
+
+int bar(void)
+{
+}
+
+int thirdElem(int a[])
+{
+    return a[2];
+}
+
+void main(void)
+{
+    int i;
+    int b[20];
+
+    b[0] = 111; b[1] = 222; b[2] = 333;
+    output(thirdElem(b));
+    output(b[1]);
+}
+
+void main(void)
+{
+    int i;
+
+    i = 0;
+
+    while (i < 10)
+    {
+        i = i + 1;
+        output(i);
+    }
+}
+
+void main(void)
+{
+    int b[20];
+    int i;
+
+    b[0] = 21;
+    output(b[0]);
+}
+
+int foo(int a, int b)
+{
+    output(a);
+    output(b);
+}
+
+void main(void)
+{
+    foo(42, 21);
+}
+
+void main(void)
+{
+    int i;
+
+    i = 0;
+
+    if (i == 5)
+        output(1);
+    else
+        output(0);
+
+    output(i);
+}
+
+int foo;
+int bar[56];
+void baz;
+
+int foobar(int one, int two[], void three) {
+int foo;
+int bar[56];
+void baz;
+
+   baz = 1 + 1;
+
+   return baz[45];
+}
+
+void quux(void) {}
+
+;
+int bar[56];
+void baz;
+
+int foobar(int one, int two[], void three) {
+   int foo;
+   int bar[56];
+   void baz;
+
+   if (foo == 1)
+   {
+       if (bar == 3)
+           output(3);
+   }
+   else
+       output(2, foo, foo[bar], foo[bar/2]);
+
+   return baz[45];
+}
+
+void quux(void) {}
+
+int three;
+
+int test(int foo)
+{
+    int three;
+
+    {
+        int three;
+	int four;
+    }
+}
+
+int main(void)
+{
+    int gh[45];
+
+    test(4);
+}
+
+int foo(void)
+{
+    return 1;
+}
+
+
+void main(void)
+{
+    int i;
+    int a[30];
+
+    int c;
+    int d;
+
+    a[a[1]] = 3 / 3;
+
+    while (1 == (a[4] + 1)) ;
+
+    return a[45];
+
+    c = foo();
+
+    c = input();
+    output(c);
+
+    i = 2;
+    i = 4;
+}

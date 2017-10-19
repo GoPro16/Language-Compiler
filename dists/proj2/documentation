@@ -1,0 +1,27 @@
+Kyle Gray
+N01038185
+COP 4620 Fall 2017
+
+Project 2
+Parser
+
+Overall Design
+The parser will take in a list of tokens that have been analyzed and accepted by the pass 1("Lexical Analysis"). 
+It will then use the C- Grammar to determine whether or not the program is syntactically correct. The parser does this
+by reading the tokens and determining which grammar rule to navigate to for the next token to be parsed. If any part of
+the program is not syntactically correct then the program will print REJECT. Once the parser is finished and no errors have
+been reported it will print ACCEPT, meaning it is syntactically correct and it is ready for semantics checking.
+
+Instructions for Running:
+> make 
+> ./p2 {Name of the program file}
+
+Files Created:
+-There are no files created by this program.
+
+Required Files:
+- *.java files
+- makefile
+- p1 script
+symbols file
+

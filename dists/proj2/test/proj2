@@ -1,0 +1,1449 @@
+# This is a shell archive.  Save it in a file, remove anything before
+# this line, and then unpack it by entering "sh file".  Note, it may
+# create directories; files and directories will be owned by you and
+# have default permissions.
+#
+# This archive contains:
+#
+#	MainClass.java
+#	Parser.java
+#	Program.java
+#	Symbol.java
+#	SymbolTable.java
+#	Token.java
+#	TokenBuilder.java
+#	TokenType.java
+#	documentation
+#	file
+#	makefile
+#	symbols
+#
+echo x - MainClass.java
+sed 's/^X//' >MainClass.java << 'END-of-MainClass.java'
+Ximport java.io.File;
+Ximport java.io.IOException;
+X
+Xpublic class MainClass {
+X    public static void main(String[] args) throws IOException {
+X        SymbolTable.initTable(40, "symbols");
+X        //GrammarTable.display();
+X        //SymbolTable.display();
+X        Program p1 = new Program(new File(args[0]));
+X        //p1.printList();
+X        Parser parser = new Parser(p1.getTokenList());
+X        parser.parse();
+X    }//end main
+X}
+END-of-MainClass.java
+echo x - Parser.java
+sed 's/^X//' >Parser.java << 'END-of-Parser.java'
+Ximport java.util.ArrayList;
+X
+Xpublic class Parser{
+X
+X    private ArrayList<Token> tokenList;
+X    private int walker = 0;
+X
+X    public Parser(ArrayList<Token> tokenList){
+X        this.tokenList = tokenList;
+X        tokenList.add(new Token("END", TokenType.END));
+X    }
+X
+X    public void parse(){
+X        program();
+X        System.out.println("ACCEPT");
+X    }
+X
+X    private void program(){
+X        declarationList();
+X    }
+X
+X    private void declarationList(){
+X        declaration();
+X        declarationListPrime();
+X    }
+X
+X    private void declaration(){
+X        if(tokenList.get(walker).toString().equals("int") || tokenList.get(walker).toString().equals("float") || tokenList.get(walker).toString().equals("void")){
+X            typeSpecifier();
+X            accept("id");
+X            declarationPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void declarationListPrime(){
+X        if(tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            declaration();
+X            declarationListPrime();
+X        }
+X    }
+X
+X    private void declarationPrime(){
+X        if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("[")){
+X            specifier();
+X        }else if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            params();
+X            accept(")");
+X            compoundStmt();
+X        }else
+X            reject();
+X    }
+X
+X    private void specifier(){
+X        if(tokenList.get(walker).toString().equals(";")){
+X            accept(";");
+X        }else if(tokenList.get(walker).toString().equals("[")){
+X            accept("[");
+X            accept("num");
+X            accept("]");
+X            accept(";");
+X        }else
+X            reject();
+X    }
+X
+X    private void typeSpecifier(){
+X        if(tokenList.get(walker).toString().equals("int")){
+X            accept("int");
+X        }else if(tokenList.get(walker).toString().equals("float")){
+X            accept("float");
+X        }else if(tokenList.get(walker).toString().equals("void")){
+X            accept("void");
+X        }else
+X            reject();
+X    }
+X
+X    private void params(){
+X        if(tokenList.get(walker).toString().equals("int")){
+X            accept("int");
+X            accept("id");
+X            paramPrime();
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals("float")){
+X            accept("float");
+X            accept("id");
+X            paramPrime();
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals("void")){
+X            accept("void");
+X            paramList();
+X        }else
+X            reject();
+X    }
+X
+X    private void paramList(){
+X        if(tokenList.get(walker).getType() == TokenType.ID){
+X            accept("id");
+X            paramPrime();
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void paramListPrime(){
+X        if(tokenList.get(walker).toString().equals(",")){
+X            accept(",");
+X            param();
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void param(){
+X        if(tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            typeSpecifier();
+X            accept("id");
+X            paramPrime();
+X        }else
+X            reject();
+X    }
+X
+X
+X    private void paramPrime(){
+X        if(tokenList.get(walker).toString().equals("[")){
+X            accept("[");
+X            accept("]");
+X        }else if(tokenList.get(walker).toString().equals(",")|| tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void compoundStmt(){
+X        if (tokenList.get(walker).toString().equals("{")){
+X            accept("{");
+X            localDeclarations();
+X            statementList();
+X            accept("}");
+X        }else
+X            reject();
+X    }
+X
+X    private void localDeclarations(){
+X        if (tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            localDeclarationsPrime();
+X        }else if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void localDeclarationsPrime(){
+X        if(tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            typeSpecifier();
+X            accept("id");
+X            specifier();
+X            localDeclarationsPrime();
+X        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void statementList(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return"))
+X            statementListPrime();
+X        else if(tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void statementListPrime(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")){
+X            statement();
+X            statementListPrime();
+X        }else if(tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void statement(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).toString().equals(";")){
+X            expressionStmt();
+X        }else if(tokenList.get(walker).toString().equals("{")){
+X            compoundStmt();
+X        }else if(tokenList.get(walker).toString().equals("if")){
+X            selectionStmt();
+X        }else if(tokenList.get(walker).toString().equals("while")){
+X            iterationStmt();
+X        }else if(tokenList.get(walker).toString().equals("return")){
+X            returnStmt();
+X        }else
+X            reject();
+X    }
+X
+X    private void expressionStmt(){
+X        if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            expression();
+X            accept(";");
+X        }else if(tokenList.get(walker).toString().equals(";")){
+X            accept(";");
+X        }else
+X            reject();
+X    }
+X
+X    private void selectionStmt(){
+X        if(tokenList.get(walker).toString().equals("if")){
+X            accept("if");
+X            accept("(");
+X            expression();
+X            accept(")");
+X            statement();
+X            selectionStmtPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void selectionStmtPrime(){
+X        if(tokenList.get(walker).toString().equals("else")){
+X            accept("else");
+X            statement();
+X        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM|| tokenList.get(walker).toString().equals(";")||
+X                tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")|| tokenList.get(walker).toString().equals("while")||
+X                tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void iterationStmt(){
+X        if(tokenList.get(walker).toString().equals("while")){
+X            accept("while");
+X            accept("(");
+X            expression();
+X            accept(")");
+X            statement();
+X        }else
+X            reject();
+X    }
+X
+X    private void returnStmt(){
+X        if (tokenList.get(walker).toString().equals("return")){
+X            accept("return");
+X            returnStmtPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void returnStmtPrime(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            expression();
+X            accept(";");
+X        }else if(tokenList.get(walker).toString().equals(";")){
+X            accept(";");
+X        }else
+X            reject();
+X        return;
+X    }
+X
+X    private void expression(){
+X        if(tokenList.get(walker).getType() == TokenType.ID){
+X            accept("id");
+X            var();
+X        }else if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            expression();
+X            accept(")");
+X            termPrime();
+X            additiveExpressionPrime();
+X            relopExpression();
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");
+X            termPrime();
+X            additiveExpressionPrime();
+X            relopExpression();
+X        }else
+X            reject();
+X    }
+X
+X    private void var(){
+X        if(tokenList.get(walker).toString().equals("[")|| tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")||
+X                tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")||
+X                tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
+X            varArr();
+X            varPrime();
+X        }else if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            args();
+X            accept(")");
+X            termPrime();
+X            additiveExpressionPrime();
+X            relopExpression();
+X        }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
+X            varArr();
+X            varPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void varPrime(){
+X        if(tokenList.get(walker).toString().equals("=")){
+X            accept("=");
+X            expression();
+X        }else if(tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")||
+X                tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
+X            termPrime();
+X            additiveExpressionPrime();
+X            relopExpression();
+X        }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
+X            termPrime();
+X            additiveExpressionPrime();
+X            relopExpression();
+X        }else
+X            reject();
+X    }
+X
+X    private void varArr(){
+X        if(tokenList.get(walker).toString().equals("[")){
+X            accept("[");
+X            expression();
+X            accept("]");
+X        }else if(tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")||
+X                tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("<=") || tokenList.get(walker).toString().equals("<") || tokenList.get(walker).toString().equals(">")||
+X                tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")||
+X                tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void relopExpression(){
+X        if(tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
+X            relop();
+X            additiveExpression();
+X        }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void relop(){
+X        if(tokenList.get(walker).toString().equals("<=")){
+X            accept("<=");
+X        }else if(tokenList.get(walker).toString().equals("<")){
+X            accept("<");
+X        }else if(tokenList.get(walker).toString().equals(">")){
+X            accept(">");
+X        }else if(tokenList.get(walker).toString().equals(">=")){
+X            accept(">=");
+X        }else if(tokenList.get(walker).toString().equals("==")){
+X            accept("==");
+X        }else if(tokenList.get(walker).toString().equals("!=")){
+X            accept("!=");
+X        }else
+X            reject();
+X    }
+X
+X    private void additiveExpression(){
+X        if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            expression();
+X            accept(")");
+X            termPrime();
+X            additiveExpressionPrime();
+X        }else if(tokenList.get(walker).getType() == TokenType.ID){
+X            accept("id");
+X            call();
+X            termPrime();
+X            additiveExpressionPrime();
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");
+X            termPrime();
+X            additiveExpressionPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void additiveExpressionPrime(){
+X        if(tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")){
+X            addop();
+X            term();
+X            additiveExpressionPrime();
+X        }else if(tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")||
+X                tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void addop(){
+X        if(tokenList.get(walker).toString().equals("+")){
+X            accept("+");
+X        }else if(tokenList.get(walker).toString().equals("-")){
+X            accept("-");
+X        }else
+X            reject();
+X    }
+X
+X    private void term(){
+X        if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            expression();
+X            accept(")");
+X            termPrime();
+X        }else if(tokenList.get(walker).getType() == TokenType.ID){
+X            accept("id");
+X            call();
+X            termPrime();
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");
+X            termPrime();
+X        } else
+X            reject();
+X    }
+X
+X    private void termPrime(){
+X        if(tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")){
+X            mulop();
+X            factor();
+X            termPrime();
+X        }else if(tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void factor(){
+X        if (tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            expression();
+X            accept(")");
+X        }else if(tokenList.get(walker).getType() == TokenType.ID){
+X            accept("id");
+X            call();
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");
+X        }else
+X            reject();
+X    }
+X
+X    private void mulop(){
+X        if (tokenList.get(walker).toString().equals("*")){
+X            accept("*");
+X        }else if (tokenList.get(walker).toString().equals("/")){
+X            accept("/");
+X        }else
+X            reject();
+X    }
+X
+X    private void call(){
+X        if (tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            args();
+X            accept(")");
+X        }else if (tokenList.get(walker).toString().equals("[")){
+X            varArr();
+X        }else if(tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")||
+X                tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">")||
+X                tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")||
+X                tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
+X            varArr();
+X        }else
+X            reject();
+X    }
+X
+X    private void args(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            argList();
+X        }else if (tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void argList(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            expression();
+X            argListPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void argListPrime(){
+X        if(tokenList.get(walker).toString().equals(",")){
+X            accept(",");
+X            expression();
+X            argListPrime();
+X        }else if(tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void accept(String value){
+X        if(!(tokenList.get(walker).equals(null))){
+X            switch(tokenList.get(walker).getType()) {
+X                case ID:
+X                    if (!(value.equals("id")))
+X                        reject();
+X                    break;
+X                case FLOAT:
+X                    if (!(value.equals("num")))
+X                        reject();
+X                    break;
+X                case NUM:
+X                    if (!(value.equals("num")))
+X                        reject();
+X                    break;
+X                default:
+X                    if (!(value.equals(tokenList.get(walker).toString())))
+X                        reject();
+X                    break;
+X            }//switch to check valid input
+X        }else
+X            reject();
+X        walker+=1;
+X    }
+X
+X    private void reject(){
+X        System.out.println("REJECT");
+X        System.exit(0);
+X    }
+X
+X
+X
+X}
+END-of-Parser.java
+echo x - Program.java
+sed 's/^X//' >Program.java << 'END-of-Program.java'
+Ximport java.io.*;
+Ximport java.util.ArrayList;
+X
+Xpublic class Program {
+X
+X    private BufferedReader reader;
+X    private ArrayList<Token> tokenList;
+X    private TokenBuilder tokenBuilder;
+X    private int commentBlockCount;
+X
+X    public Program(File f) throws IOException {
+X        commentBlockCount = 0;
+X        tokenBuilder = new TokenBuilder();
+X        reader = new BufferedReader(new FileReader(f));
+X        tokenList = new ArrayList<Token>();
+X        String line;
+X        while((line = reader.readLine()) != null){
+X            if(line.trim().length() != 0){
+X                parseLine(line);
+X            }
+X        }
+X        //printList();
+X        ArrayList<Token> temp = new ArrayList<Token>();
+X        for(int x=0;x<tokenList.size();x++){
+X            if(!(tokenList.get(x).getType() == TokenType.COM || tokenList.get(x).getType() == TokenType.NCOM)){
+X                temp.add(tokenList.get(x));
+X            }
+X        }//ensure no nested comments for parser
+X        tokenList = temp;
+X    }
+X
+X    public boolean parseLine(String line){
+X        //System.out.println("INPUT: "+line);
+X        char chars[] = line.toCharArray();
+X        char c;
+X        for(int x = 0;x<chars.length;x++){
+X            c = chars[x];
+X            //System.out.println("Char: "+ c);
+X            if(commentBlockCount > 0 && chars.length > x+1){
+X                switch(c){
+X                    case '/':
+X                        if(chars[x+1] == '*'){
+X                            tokenList.add(new Token("/*",TokenType.NCOM));
+X                            commentBlockCount++;
+X                            ++x;
+X                        }
+X                        break;
+X                    case '*':
+X                        if(chars[x+1] == '/'){
+X                            tokenList.add(new Token("*/",TokenType.NCOM));
+X                            commentBlockCount--;
+X                            ++x;
+X                        }
+X                        break;
+X                }//comment blocks
+X                continue;
+X            }else if(!(commentBlockCount > 0)){
+X                //if there is no comment block, check for special tokens
+X                switch(c){
+X                    case '!':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token("!=",TokenType.EXP));
+X                                //System.out.println("!=");
+X                                ++x;
+X                                continue;
+X                            }
+X                        }
+X                        tokenList.add(new Token("!", TokenType.ERROR));
+X                        //System.out.println("ERROR: !");
+X                        continue;
+X                    case '=':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token("==",TokenType.EXP));
+X                               // System.out.println("==");
+X                                ++x;
+X                            }else if(chars[x+1] == '<') {
+X                                tokenList.add(new Token("=<",TokenType.EXP));
+X                                //System.out.println("=<");
+X                                ++x;
+X                            }else {
+X                                tokenList.add(new Token("=", TokenType.EXP));
+X                                //System.out.println("=");
+X                            }
+X                        }
+X                        continue;
+X                    case '>':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token(">=",TokenType.EXP));
+X                               // System.out.println(">=");
+X                                ++x;
+X                            }else{
+X                                tokenList.add(new Token(">",TokenType.EXP));
+X                               // System.out.println(">");
+X                            }
+X
+X                        }
+X                        continue;
+X                    case '(':
+X                    case ')':
+X                    case '{':
+X                    case '}':
+X                    case ',':
+X                    case '[':
+X                    case ';':
+X                    case ']':
+X                    case '*':
+X                        popToken();
+X                        tokenList.add(new Token(c,TokenType.EXP));
+X                        //System.out.println(c);
+X                        continue;
+X                    case '+':
+X                    case '-':
+X                        if(x+1>chars.length){
+X                            popToken();
+X                            tokenBuilder.addErrorChar(c);
+X                        }else{
+X                            if(tokenBuilder.getCurrentToken() != null){
+X                                if(tokenBuilder.getCurrentToken().getType() != TokenType.NUM){
+X                                    popToken();
+X                                    tokenList.add(new Token(c,TokenType.EXP));
+X                                }//if the current token is not a number currentlys
+X                            }else{
+X                                if(Character.isDigit(chars[x+1]) && chars[x-1] == 'E'){
+X                                    popToken();
+X                                    tokenBuilder.addErrorChar(c);
+X                                }else if(chars[x+1] == ' '){
+X                                    tokenList.add(new Token(c,TokenType.EXP));
+X                                }else{
+X                                    tokenBuilder.addErrorChar(c);
+X                                }//if the next token is a digit
+X                            }//if the current token is null
+X                        }
+X                       // System.out.println(c);
+X                        continue;
+X                    case '/':
+X                        if(x+1 >= chars.length){
+X                            popToken();
+X                            tokenList.add(new Token("/",TokenType.EXP));
+X                          //  System.out.println("/");
+X                            continue;
+X                        }else{
+X                            switch(chars[x+1]){
+X                                case '/':
+X                                    popToken();
+X                                    tokenList.add(new Token("//",TokenType.COM));
+X                                    ++x;
+X                                    return true;
+X                                case '*':
+X                                    popToken();
+X                                    tokenList.add(new Token("/*",TokenType.NCOM));
+X                                    ++x;
+X                                    ++commentBlockCount;
+X                                    break;
+X                                default:
+X                                    popToken();
+X                                    tokenList.add(new Token("/",TokenType.EXP));
+X                                   // System.out.println('/');
+X                                    break;
+X                            }//check if comment block or just divide by sign
+X                            continue;
+X                        }
+X                }
+X            }//end special chars
+X            //Must be an id or a keyword
+X            if(c == ' ' && tokenBuilder.getCurrentToken() != null){
+X                tokenList.add(tokenBuilder.create());
+X            }else if(tokenBuilder.getCurrentToken() != null){
+X                //check if float
+X                if(tokenBuilder.getCurrentToken().getType() == TokenType.NUM){
+X                    boolean isNum = true,running = true;
+X                    do{
+X                        String temp = Character.toString(tokenBuilder.getCurrentToken().toString().toCharArray()[tokenBuilder.getCurrentToken().length()-1]);
+X                        c = chars[x];
+X                        switch(temp){
+X                            case "E":
+X                                if((temp+c).matches("E(-|\\+|\\d)")){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    isNum = false;
+X                                    --x;
+X                                }
+X                                break;
+X                            case "-":
+X                            case "+":
+X                            case ".":
+X                                if(Character.isDigit(c)){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    isNum = false;
+X                                    --x;
+X                                }
+X                                break;
+X                            default:
+X                                if((temp+c).matches("\\d+")){
+X                                    tokenBuilder.addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    switch(c){
+X                                        case '.':
+X                                            if(tokenBuilder.getCurrentToken().toString().chars().filter(ch -> ch == '.').count() == 1){
+X                                                running = false;
+X                                                --x;
+X                                            }else{
+X                                                tokenBuilder.getCurrentToken().addChar(c);
+X                                                ++x;
+X                                            }
+X                                            break;
+X                                        case 'E':
+X                                            if(tokenBuilder.getCurrentToken().toString().chars().filter(ch -> ch == 'E').count() == 1){
+X                                                running = false;
+X                                                --x;
+X                                            }else{
+X                                                tokenBuilder.getCurrentToken().addChar(c);
+X                                                ++x;
+X                                            }
+X                                            break;
+X                                        default:
+X                                            running = false;
+X                                            --x;
+X                                            break;
+X                                    }
+X                                }
+X
+X                        }
+X                    }while(running && isNum && (x < chars.length));
+X                    if(!isNum || !tokenBuilder.getCurrentToken().toString().matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?")){
+X                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+X                        popToken();
+X                    }else if(Character.isLetter(c)){
+X                        popToken();
+X                        tokenBuilder.addChar(c);
+X                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+X                        ++x;
+X                    }else{
+X                        popToken();
+X                    }
+X                    continue;
+X                }//test for float
+X
+X                if(!tokenBuilder.getCurrentToken().checkType(c)){
+X                    popToken();
+X                    tokenBuilder.addErrorChar(c);
+X                }else {
+X                    tokenBuilder.addChar(c);
+X                }
+X            }else if( c != ' ' && tokenBuilder.getCurrentToken() == null && commentBlockCount == 0){
+X                    tokenBuilder.addChar(c);
+X            }
+X        }//end for
+X        if(tokenBuilder.getCurrentToken() != null && commentBlockCount == 0){
+X            popToken();
+X        }
+X        return true;
+X    }
+X
+X    public boolean parseChar(char c) {
+X        return false;
+X    }
+X
+X    public void popToken(){
+X        if(tokenBuilder.getCurrentToken() != null){
+X            //System.out.println(tokenBuilder.getCurrentToken().toString());
+X            tokenList.add(tokenBuilder.create());
+X        }
+X    }
+X
+X    public ArrayList<Token> getTokenList(){
+X        return this.tokenList;
+X    }
+X
+X    public void printList(){
+X        tokenList.forEach(token -> {
+X            System.out.println(token.toString());
+X        });
+X    }
+X}//Program
+END-of-Program.java
+echo x - Symbol.java
+sed 's/^X//' >Symbol.java << 'END-of-Symbol.java'
+Xpublic class Symbol {
+X
+X    private String name;
+X    private TokenType type;
+X
+X    public Symbol(String name,String type){
+X        this.name = name;
+X        switch(type){
+X            case "keyword":
+X                this.type=TokenType.KEYWORD;
+X                break;
+X            case "LD":
+X            case "RD":
+X                this.type = TokenType.PARENS;
+X                break;
+X            case "LB":
+X            case "RB":
+X                this.type = TokenType.BRACES;
+X                break;
+X            case "LBB":
+X            case "RBB":
+X                this.type = TokenType.BRACKETS;
+X                break;
+X            case "/*":
+X            case "*/":
+X                this.type = TokenType.NCOM;
+X                break;
+X            case "//":
+X                this.type = TokenType.COM;
+X                break;
+X            default:
+X                this.type= TokenType.EXP;
+X                break;
+X        }
+X    }//end constructor
+X
+X    public String toString(){
+X        return name;
+X    }
+X    public TokenType getType(){
+X        return type;
+X    }
+X
+X}
+END-of-Symbol.java
+echo x - SymbolTable.java
+sed 's/^X//' >SymbolTable.java << 'END-of-SymbolTable.java'
+Ximport java.io.IOException;
+Ximport java.nio.file.Files;
+Ximport java.nio.file.Paths;
+X
+X/**
+X * Table for placing data items in
+X * an array
+X * @author Kyle
+X */
+Xpublic class SymbolTable {
+X
+X    private static Symbol[] arr; // the array of items
+X    private static int size;	//The size of the array
+X    private static int maxSearch;
+X    /**
+X     * Constructor for the TokenTable
+X     * @param siz - the size of the table
+X     * @param filename - the file containing the symbols
+X     */
+X    public static void initTable(int siz,String filename) throws IOException {
+X        size = siz;
+X        arr = new Symbol[size];
+X        maxSearch = 1;
+X
+X        Files.lines(Paths.get(filename)).forEach(line -> {
+X            String temp[] = line.split(" ");
+X            insert(new Symbol(temp[0],temp[1]));
+X        });
+X    }//end HashTable
+X
+X    public static Symbol find(String key){
+X        int walker;//walker to walk on array
+X        int count = 1;//counter for probing
+X        int  newHash;
+X        boolean found = false;
+X        int hash = hash(key);
+X        if(arr[hash] != null && arr[hash].toString().equals(key)){
+X            return arr[hash];
+X        }
+X        while(!found){
+X            walker = hash;
+X            newHash = quadP(count++);
+X            for(int x=newHash;x>0;x--){
+X                if(++walker == arr.length){
+X                    walker = 0;
+X                }
+X            }
+X            if(arr[walker] != null && arr[walker].toString().equals(key)){
+X                return arr[walker];
+X            }//if the array item is null or
+X            if(count>maxSearch){
+X                break;
+X            }
+X
+X
+X        }
+X        return null;
+X    }
+X
+X    /**
+X     * Hashes the given string
+X     * @param s - the string to hash
+X     * @return - the value of the hashed string
+X     */
+X    public static int hash(String s){
+X        int hash = 0;
+X        char[] arr = s.toCharArray();
+X        hash=arr[0];
+X        for(int x=1;x<arr.length;x++){
+X            hash=(hash*26+arr[x])%size;
+X        }//hash the string
+X        hash%=size;//Just in case its one character(will not affect if more)
+X        return hash;
+X    }//end hash
+X
+X    /**
+X     * Insertion method for hash table
+X     * @param item - the item to be inserted
+X     */
+X    public static void insert(Symbol item){
+X        //Hash
+X        String s = item.toString();
+X        int hash = hash(s);
+X
+X        //insert
+X        if(arr[hash] == null){
+X            arr[hash] = item;
+X        }else{//if the index is null or there is a deleted item
+X            probeInsert(hash,item);
+X        }//else probe until valid insertion
+X    }//end insert
+X
+X    /**
+X     * probeInsertion
+X     * @param hash - the hash value of the string
+X     * @param item - the item to be inserted
+X     */
+X    public static void probeInsert(int hash,Symbol item){
+X        boolean isFound = false;//boolean to know when found
+X        int walker = hash;//walker to walk on array
+X        int count = 1;//counter for probing
+X        int  newHash = hash;//New hash value
+X
+X        while(!isFound){
+X            walker = hash;
+X            newHash = quadP(count++);
+X            for(int x=newHash;x>0;x--){
+X                if(++walker == arr.length){
+X                    walker = 0;
+X                }
+X            }
+X            if(arr[walker]== null){
+X                arr[walker] = item;
+X                isFound = true;
+X            }//if the array item is null or
+X        }//while the item position isn't found
+X        if(count>maxSearch){
+X            maxSearch = count;
+X        }
+X    }//end probeInsert
+X
+X    //Used if using quadratic probing
+X    public static int quadP(int x){
+X        return x*x;
+X    }//end quadP
+X
+X    public static void display(){
+X        for (Symbol symbol : arr) {
+X            if(symbol != null)
+X                System.out.println(symbol.toString());
+X        }
+X    }
+X
+X
+X}//end HashTable
+END-of-SymbolTable.java
+echo x - Token.java
+sed 's/^X//' >Token.java << 'END-of-Token.java'
+Xpublic class Token {
+X
+X    private TokenType type;
+X    private String value;
+X
+X    public Token(){value="";}
+X
+X    public Token(char value, TokenType type){
+X        this.value = Character.toString(value);
+X        this.type = type;
+X    }
+X    public Token(String value,TokenType type){
+X        this.value = value;
+X        this.type = type;
+X    }
+X
+X    public void setType(TokenType type){
+X        this.type = type;
+X    }
+X
+X    public boolean checkType(char c){
+X        switch(type){
+X            case NUM:
+X                return (value+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?");
+X            case ID:
+X                return (value+c).chars().allMatch(Character::isLetter);
+X            default:
+X                return true;
+X        }
+X    }
+X
+X    public int length(){
+X        return value.length();
+X    }
+X    public TokenType getType(){
+X        return type;
+X    }
+X
+X    public String display(){
+X        switch(type){
+X            case NUM:
+X                return "NUM: "+value;
+X            case FLOAT:
+X                return "FLOAT: "+value;
+X            case ID:
+X                return "ID: "+value;
+X            case COM:
+X            case NCOM:
+X                return null;
+X            case KEYWORD:
+X                return "keyword: "+value;
+X            case ERROR:
+X                return "ERROR:"+value;
+X            default:
+X                return value;
+X        }
+X    }
+X
+X
+X    public void addChar(char c){
+X        value+=c;
+X    }
+X
+X    public String toString(){
+X        return value;
+X    }
+X
+X}
+END-of-Token.java
+echo x - TokenBuilder.java
+sed 's/^X//' >TokenBuilder.java << 'END-of-TokenBuilder.java'
+Xpublic class TokenBuilder {
+X
+X    private Token token;
+X    private int depth;
+X
+X    public TokenBuilder(){
+X        depth = 0;
+X    }
+X
+X    public void addChar(char c){
+X        if(token == null) {
+X            token = new Token();
+X            Symbol temp = SymbolTable.find(Character.toString(c));
+X            if (temp != null) {
+X                token = new Token(Character.toString(c), temp.getType());
+X            } else {
+X                if (Character.isDigit(c)) {
+X                    token.setType(TokenType.NUM);
+X                } else if(Character.toString(c).matches(".*[a-z].*")){
+X                    token.setType(TokenType.ID);
+X                }else{
+X                    //System.out.println("ERROR:"+c+";");
+X                    token.setType(TokenType.ERROR);
+X                }
+X                token.addChar(c);
+X            }
+X        }else if(token.getType() == TokenType.ERROR) {
+X            Symbol temp = SymbolTable.find(Character.toString(c));
+X            if(temp != null) {
+X                create();
+X            }else {
+X                token.addChar(c);
+X            }
+X        }else{
+X                Symbol temp = SymbolTable.find(token.toString()+c);
+X                if(temp != null){
+X                    token.setType(temp.getType());
+X                }else{
+X                    switch(token.getType()){
+X                            case ID:
+X                            if(Character.isDigit(c) || !(token.toString()+c).matches(".*[a-z].*")){
+X                                create();
+X                                token = new Token(c,TokenType.ERROR);
+X                            }
+X                            break;
+X                        case KEYWORD:
+X                            token.setType(TokenType.ID);
+X                            break;
+X                           case NUM:
+X                            if(!((token.toString()+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?"))){
+X                                //System.out.println("NOT A NUMBER:"+c);
+X                                create();
+X                                token = new Token(c,TokenType.ERROR);
+X                            }
+X                            break;
+X                    }
+X                }
+X                token.addChar(c);
+X            }
+X        }
+X
+X    public Token getCurrentToken(){
+X        return token;
+X    }
+X
+X    public void addErrorChar(char c){
+X        if(token == null){
+X            token = new Token(c,TokenType.ERROR);
+X        }else{
+X            token.addChar(c);
+X        }
+X    }
+X
+X
+X    public Token create(){
+X        Token t = token;
+X        //System.out.println(token.display());
+X        token = null;
+X        return t;
+X    }
+X}
+END-of-TokenBuilder.java
+echo x - TokenType.java
+sed 's/^X//' >TokenType.java << 'END-of-TokenType.java'
+Xpublic enum TokenType {
+X    ID,EXP,BRACES,BRACKETS,PARENS,NUM,KEYWORD,ERROR,NCOM,COM,FLOAT,END
+X}
+END-of-TokenType.java
+echo x - documentation
+sed 's/^X//' >documentation << 'END-of-documentation'
+XKyle Gray
+XN01038185
+XCOP 4620 Fall 2017
+X
+XProject 2
+XParser
+X
+XOverall Design
+XThe parser will take in a list of tokens that have been analyzed and accepted by the pass 1("Lexical Analysis"). 
+XIt will then use the C- Grammar to determine whether or not the program is syntactically correct. The parser does this
+Xby reading the tokens and determining which grammar rule to navigate to for the next token to be parsed. If any part of
+Xthe program is not syntactically correct then the program will print REJECT. Once the parser is finished and no errors have
+Xbeen reported it will print ACCEPT, meaning it is syntactically correct and it is ready for semantics checking.
+X
+XInstructions for Running:
+X> make 
+X> ./p2 {Name of the program file}
+X
+XFiles Created:
+X-There are no files created by this program.
+X
+XRequired Files:
+X- *.java files
+X- makefile
+X- p1 script
+Xsymbols file
+X
+END-of-documentation
+echo x - file
+sed 's/^X//' >file << 'END-of-file'
+Xint i;
+Xint j;
+X
+Xint array[20];
+X
+Xint foo(int i, int j)
+X{
+X    int a;
+X    int b[20];
+X}
+X
+Xint bar(void)
+X{
+X}
+X
+Xint thirdElem(int a[])
+X{
+X    return a[2];
+X}
+X
+Xvoid main(void)
+X{
+X    int i;
+X    int b[20];
+X
+X    b[0] = 111; b[1] = 222; b[2] = 333;
+X    output(thirdElem(b));
+X    output(b[1]);
+X}
+X
+Xvoid main(void)
+X{
+X    int i;
+X
+X    i = 0;
+X
+X    while (i < 10)
+X    {
+X        i = i + 1;
+X        output(i);
+X    }
+X}
+X
+Xvoid main(void)
+X{
+X    int b[20];
+X    int i;
+X
+X    b[0] = 21;
+X    output(b[0]);
+X}
+X
+Xint foo(int a, int b)
+X{
+X    output(a);
+X    output(b);
+X}
+X
+Xvoid main(void)
+X{
+X    foo(42, 21);
+X}
+X
+Xvoid main(void)
+X{
+X    int i;
+X
+X    i = 0;
+X
+X    if (i == 5)
+X        output(1);
+X    else
+X        output(0);
+X
+X    output(i);
+X}
+X
+Xint foo;
+Xint bar[56];
+Xvoid baz;
+X
+Xint foobar(int one, int two[], void three) {
+Xint foo;
+Xint bar[56];
+Xvoid baz;
+X
+X   baz = 1 + 1;
+X
+X   return baz[45];
+X}
+X
+Xvoid quux(void) {}
+X
+X;
+Xint bar[56];
+Xvoid baz;
+X
+Xint foobar(int one, int two[], void three) {
+X   int foo;
+X   int bar[56];
+X   void baz;
+X
+X   if (foo == 1)
+X   {
+X       if (bar == 3)
+X           output(3);
+X   }
+X   else
+X       output(2, foo, foo[bar], foo[bar/2]);
+X
+X   return baz[45];
+X}
+X
+Xvoid quux(void) {}
+X
+Xint three;
+X
+Xint test(int foo)
+X{
+X    int three;
+X
+X    {
+X        int three;
+X	int four;
+X    }
+X}
+X
+Xint main(void)
+X{
+X    int gh[45];
+X
+X    test(4);
+X}
+X
+Xint foo(void)
+X{
+X    return 1;
+X}
+X
+X
+Xvoid main(void)
+X{
+X    int i;
+X    int a[30];
+X
+X    int c;
+X    int d;
+X
+X    a[a[1]] = 3 / 3;
+X
+X    while (1 == (a[4] + 1)) ;
+X
+X    return a[45];
+X
+X    c = foo();
+X
+X    c = input();
+X    output(c);
+X
+X    i = 2;
+X    i = 4;
+X}
+END-of-file
+echo x - makefile
+sed 's/^X//' >makefile << 'END-of-makefile'
+XMainClass.class:MainClass.java
+X	javac *.java
+END-of-makefile
+echo x - symbols
+sed 's/^X//' >symbols << 'END-of-symbols'
+Xfloat keyword
+Xint keyword
+Xvoid keyword
+Xif keyword
+Xelse keyword
+Xwhile keyword
+Xreturn keyword
+X( LD
+X) RD
+X{ LB
+X} RB
+X[ LBB
+X] RBB
+X; END
+X, token
+X+ token
+X- token
+X/ token
+X* token
+X> LEXP
+X< REXP
+X= EQU
+X/* NCOM
+X*/ NCOM
+X// COM
+END-of-symbols
+exit
+
