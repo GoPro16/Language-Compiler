@@ -24,14 +24,22 @@ public class Program {
             }
         }
         //printList();
+        ArrayList<Token> temp = new ArrayList<Token>();
+        for(int x=0;x<tokenList.size();x++){
+            if(!(tokenList.get(x).getType() == TokenType.COM || tokenList.get(x).getType() == TokenType.NCOM)){
+                temp.add(tokenList.get(x));
+            }
+        }//ensure no nested comments for parser
+        tokenList = temp;
     }
 
     public boolean parseLine(String line){
-        System.out.println("INPUT: "+line);
+        //System.out.println("INPUT: "+line);
         char chars[] = line.toCharArray();
         char c;
         for(int x = 0;x<chars.length;x++){
             c = chars[x];
+            //System.out.println("Char: "+ c);
             if(commentBlockCount > 0 && chars.length > x+1){
                 switch(c){
                     case '/':
@@ -58,28 +66,28 @@ public class Program {
                         if(x+1<chars.length){
                             if(chars[x+1] == '='){
                                 tokenList.add(new Token("!=",TokenType.EXP));
-                                System.out.println("!=");
+                                //System.out.println("!=");
                                 ++x;
                                 continue;
                             }
                         }
                         tokenList.add(new Token("!", TokenType.ERROR));
-                        System.out.println("ERROR: !");
+                        //System.out.println("ERROR: !");
                         continue;
                     case '=':
                         popToken();
                         if(x+1<chars.length){
                             if(chars[x+1] == '='){
                                 tokenList.add(new Token("==",TokenType.EXP));
-                                System.out.println("==");
+                               // System.out.println("==");
                                 ++x;
                             }else if(chars[x+1] == '<') {
                                 tokenList.add(new Token("=<",TokenType.EXP));
-                                System.out.println("=<");
+                                //System.out.println("=<");
                                 ++x;
                             }else {
                                 tokenList.add(new Token("=", TokenType.EXP));
-                                System.out.println("=");
+                                //System.out.println("=");
                             }
                         }
                         continue;
@@ -88,11 +96,11 @@ public class Program {
                         if(x+1<chars.length){
                             if(chars[x+1] == '='){
                                 tokenList.add(new Token(">=",TokenType.EXP));
-                                System.out.println(">=");
+                               // System.out.println(">=");
                                 ++x;
                             }else{
                                 tokenList.add(new Token(">",TokenType.EXP));
-                                System.out.println(">");
+                               // System.out.println(">");
                             }
 
                         }
@@ -108,7 +116,7 @@ public class Program {
                     case '*':
                         popToken();
                         tokenList.add(new Token(c,TokenType.EXP));
-                        System.out.println(c);
+                        //System.out.println(c);
                         continue;
                     case '+':
                     case '-':
@@ -132,13 +140,13 @@ public class Program {
                                 }//if the next token is a digit
                             }//if the current token is null
                         }
-                        System.out.println(c);
+                       // System.out.println(c);
                         continue;
                     case '/':
                         if(x+1 >= chars.length){
                             popToken();
                             tokenList.add(new Token("/",TokenType.EXP));
-                            System.out.println("/");
+                          //  System.out.println("/");
                             continue;
                         }else{
                             switch(chars[x+1]){
@@ -156,7 +164,7 @@ public class Program {
                                 default:
                                     popToken();
                                     tokenList.add(new Token("/",TokenType.EXP));
-                                    System.out.println('/');
+                                   // System.out.println('/');
                                     break;
                             }//check if comment block or just divide by sign
                             continue;
@@ -196,7 +204,7 @@ public class Program {
                                 break;
                             default:
                                 if((temp+c).matches("\\d+")){
-                                    tokenBuilder.getCurrentToken().addChar(c);
+                                    tokenBuilder.addChar(c);
                                     ++x;
                                 }else{
                                     switch(c){
@@ -229,20 +237,20 @@ public class Program {
                     }while(running && isNum && (x < chars.length));
                     if(!isNum || !tokenBuilder.getCurrentToken().toString().matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?")){
                         tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
-                        tokenBuilder.create();
+                        popToken();
                     }else if(Character.isLetter(c)){
-                        tokenBuilder.create();
+                        popToken();
                         tokenBuilder.addChar(c);
                         tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
                         ++x;
                     }else{
-                        tokenBuilder.create();
+                        popToken();
                     }
                     continue;
                 }//test for float
 
                 if(!tokenBuilder.getCurrentToken().checkType(c)){
-                    tokenList.add(tokenBuilder.create());
+                    popToken();
                     tokenBuilder.addErrorChar(c);
                 }else {
                     tokenBuilder.addChar(c);
@@ -252,7 +260,7 @@ public class Program {
             }
         }//end for
         if(tokenBuilder.getCurrentToken() != null && commentBlockCount == 0){
-            tokenList.add(tokenBuilder.create());
+            popToken();
         }
         return true;
     }
@@ -263,8 +271,13 @@ public class Program {
 
     public void popToken(){
         if(tokenBuilder.getCurrentToken() != null){
+            //System.out.println(tokenBuilder.getCurrentToken().toString());
             tokenList.add(tokenBuilder.create());
         }
+    }
+
+    public ArrayList<Token> getTokenList(){
+        return this.tokenList;
     }
 
     public void printList(){

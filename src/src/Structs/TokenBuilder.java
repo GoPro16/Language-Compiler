@@ -21,6 +21,7 @@ public class TokenBuilder {
                 } else if(Character.toString(c).matches(".*[a-z].*")){
                     token.setType(TokenType.ID);
                 }else{
+                    //System.out.println("ERROR:"+c+";");
                     token.setType(TokenType.ERROR);
                 }
                 token.addChar(c);
@@ -49,7 +50,7 @@ public class TokenBuilder {
                             break;
                            case NUM:
                             if(!((token.toString()+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?"))){
-                                System.out.println("NOT A NUMBER:"+c);
+                                //System.out.println("NOT A NUMBER:"+c);
                                 create();
                                 token = new Token(c,TokenType.ERROR);
                             }
@@ -75,7 +76,7 @@ public class TokenBuilder {
 
     public Token create(){
         Token t = token;
-        System.out.println(token.display());
+        //System.out.println(token.display());
         token = null;
         return t;
     }
