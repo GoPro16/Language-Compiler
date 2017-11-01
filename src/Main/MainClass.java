@@ -7,12 +7,9 @@ import java.io.IOException;
 
 public class MainClass {
     public static void main(String[] args) throws IOException {
-        SymbolTable.initTable(40, "symbols");
-        //GrammarTable.display();
-        //SymbolTable.display();
         Program p1 = new Program(new File("file"));
         //p1.printList();
-        Parser parser = new Parser(p1.getTokenList());
+        Parser parser = new Parser(p1.getTokenList(),p1.getLineCount());
         parser.parse();
     }//end main
 }

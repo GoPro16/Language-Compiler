@@ -12,10 +12,6 @@ public class TokenBuilder {
     public void addChar(char c){
         if(token == null) {
             token = new Token();
-            Symbol temp = SymbolTable.find(Character.toString(c));
-            if (temp != null) {
-                token = new Token(Character.toString(c), temp.getType());
-            } else {
                 if (Character.isDigit(c)) {
                     token.setType(TokenType.NUM);
                 } else if(Character.toString(c).matches(".*[a-z].*")){
@@ -25,21 +21,22 @@ public class TokenBuilder {
                     token.setType(TokenType.ERROR);
                 }
                 token.addChar(c);
-            }
         }else if(token.getType() == TokenType.ERROR) {
-            Symbol temp = SymbolTable.find(Character.toString(c));
-            if(temp != null) {
-                create();
-            }else {
                 token.addChar(c);
-            }
         }else{
-                Symbol temp = SymbolTable.find(token.toString()+c);
-                if(temp != null){
-                    token.setType(temp.getType());
-                }else{
+            switch(token.toString()+c) {
+                case"int":
+                case "float":
+                case "void":
+                case "while":
+                case "return":
+                case "if":
+                case "else":
+                    token.setType(TokenType.KEYWORD);
+                    break;
+                default:
                     switch(token.getType()){
-                            case ID:
+                        case ID:
                             if(Character.isDigit(c) || !(token.toString()+c).matches(".*[a-z].*")){
                                 create();
                                 token = new Token(c,TokenType.ERROR);
@@ -48,7 +45,7 @@ public class TokenBuilder {
                         case KEYWORD:
                             token.setType(TokenType.ID);
                             break;
-                           case NUM:
+                        case NUM:
                             if(!((token.toString()+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?"))){
                                 //System.out.println("NOT A NUMBER:"+c);
                                 create();
@@ -56,7 +53,7 @@ public class TokenBuilder {
                             }
                             break;
                     }
-                }
+            }
                 token.addChar(c);
             }
         }

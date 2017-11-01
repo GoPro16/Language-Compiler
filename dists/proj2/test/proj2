@@ -17,6 +17,7 @@
 #	file
 #	makefile
 #	symbols
+#	test
 #
 echo x - MainClass.java
 sed 's/^X//' >MainClass.java << 'END-of-MainClass.java'
@@ -96,7 +97,7 @@ X        if(tokenList.get(walker).toString().equals(";")){
 X            accept(";");
 X        }else if(tokenList.get(walker).toString().equals("[")){
 X            accept("[");
-X            accept("num");
+X            accept("nonfloat");
 X            accept("]");
 X            accept(";");
 X        }else
@@ -322,7 +323,7 @@ X            accept(")");
 X            termPrime();
 X            additiveExpressionPrime();
 X            relopExpression();
-X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT ){
 X            accept("num");
 X            termPrime();
 X            additiveExpressionPrime();
@@ -372,6 +373,9 @@ X
 X    private void varArr(){
 X        if(tokenList.get(walker).toString().equals("[")){
 X            accept("[");
+X            if(tokenList.get(walker).getType() == TokenType.FLOAT)
+X                reject();
+X
 X            expression();
 X            accept("]");
 X        }else if(tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")||
@@ -423,7 +427,7 @@ X            accept("id");
 X            call();
 X            termPrime();
 X            additiveExpressionPrime();
-X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
 X            accept("num");
 X            termPrime();
 X            additiveExpressionPrime();
@@ -558,11 +562,11 @@ X                    if (!(value.equals("id")))
 X                        reject();
 X                    break;
 X                case FLOAT:
-X                    if (!(value.equals("num")))
+X                    if (!(value.equals("num")) || value.equals("nonfloat"))
 X                        reject();
 X                    break;
 X                case NUM:
-X                    if (!(value.equals("num")))
+X                    if (!(value.equals("num")) && !(value.equals("nonfloat")))
 X                        reject();
 X                    break;
 X                default:
@@ -576,7 +580,7 @@ X        walker+=1;
 X    }
 X
 X    private void reject(){
-X        System.out.println("REJECT");
+X        System.out.println("REJECT");        
 X        System.exit(0);
 X    }
 X
@@ -780,6 +784,8 @@ X                            case "+":
 X                            case ".":
 X                                if(Character.isDigit(c)){
 X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    if(!temp.equals("+"))
+X                                        tokenBuilder.getCurrentToken().setType(TokenType.FLOAT);
 X                                    ++x;
 X                                }else{
 X                                    isNum = false;
@@ -1342,7 +1348,6 @@ X}
 X
 Xvoid quux(void) {}
 X
-X;
 Xint bar[56];
 Xvoid baz;
 X
@@ -1369,10 +1374,9 @@ X
 Xint test(int foo)
 X{
 X    int three;
-X
 X    {
-X        int three;
-X	int four;
+X    int four;
+X    int three;
 X    }
 X}
 X
@@ -1445,5 +1449,7 @@ X/* NCOM
 X*/ NCOM
 X// COM
 END-of-symbols
+echo c - test
+mkdir -p test > /dev/null 2>&1
 exit
 

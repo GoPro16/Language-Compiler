@@ -11,14 +11,16 @@ public class Program {
     private ArrayList<Token> tokenList;
     private TokenBuilder tokenBuilder;
     private int commentBlockCount;
-
+    private int lineCount;
     public Program(File f) throws IOException {
+        lineCount = 0;
         commentBlockCount = 0;
         tokenBuilder = new TokenBuilder();
         reader = new BufferedReader(new FileReader(f));
         tokenList = new ArrayList<Token>();
         String line;
         while((line = reader.readLine()) != null){
+            lineCount++;
             if(line.trim().length() != 0){
                 parseLine(line);
             }
@@ -31,6 +33,10 @@ public class Program {
             }
         }//ensure no nested comments for parser
         tokenList = temp;
+    }
+
+    public int getLineCount(){
+        return lineCount;
     }
 
     public boolean parseLine(String line){
@@ -81,11 +87,7 @@ public class Program {
                                 tokenList.add(new Token("==",TokenType.EXP));
                                // System.out.println("==");
                                 ++x;
-                            }else if(chars[x+1] == '<') {
-                                tokenList.add(new Token("=<",TokenType.EXP));
-                                //System.out.println("=<");
-                                ++x;
-                            }else {
+                            }else{
                                 tokenList.add(new Token("=", TokenType.EXP));
                                 //System.out.println("=");
                             }
@@ -96,11 +98,25 @@ public class Program {
                         if(x+1<chars.length){
                             if(chars[x+1] == '='){
                                 tokenList.add(new Token(">=",TokenType.EXP));
-                               // System.out.println(">=");
+                                // System.out.println(">=");
                                 ++x;
                             }else{
                                 tokenList.add(new Token(">",TokenType.EXP));
-                               // System.out.println(">");
+                                // System.out.println(">");
+                            }
+
+                        }
+                        continue;
+                    case '<':
+                        popToken();
+                        if(x+1<chars.length){
+                            if(chars[x+1] == '='){
+                                tokenList.add(new Token("<=",TokenType.EXP));
+                                // System.out.println(">=");
+                                ++x;
+                            }else{
+                                tokenList.add(new Token("<",TokenType.EXP));
+                                // System.out.println(">");
                             }
 
                         }

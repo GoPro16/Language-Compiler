@@ -11,26 +11,26 @@ import java.nio.file.Paths;
  */
 public class SymbolTable {
 
-    private static Symbol[] arr; // the array of items
-    private static int size;	//The size of the array
-    private static int maxSearch;
+    private Symbol[] arr; // the array of items
+    private int size;	//The size of the array
+    private int maxSearch;
+
     /**
      * Constructor for the TokenTable
      * @param siz - the size of the table
-     * @param filename - the file containing the symbols
      */
-    public static void initTable(int siz,String filename) throws IOException {
+    public SymbolTable(int siz){
         size = siz;
         arr = new Symbol[size];
         maxSearch = 1;
-
+        /*
         Files.lines(Paths.get(filename)).forEach(line -> {
             String temp[] = line.split(" ");
             insert(new Symbol(temp[0],temp[1]));
-        });
+        });*/
     }//end HashTable
 
-    public static Symbol find(String key){
+    public Symbol find(String key){
         int walker;//walker to walk on array
         int count = 1;//counter for probing
         int  newHash;
@@ -64,7 +64,7 @@ public class SymbolTable {
      * @param s - the string to hash
      * @return - the value of the hashed string
      */
-    public static int hash(String s){
+    public int hash(String s){
         int hash = 0;
         char[] arr = s.toCharArray();
         hash=arr[0];
@@ -79,7 +79,7 @@ public class SymbolTable {
      * Insertion method for hash table
      * @param item - the item to be inserted
      */
-    public static void insert(Symbol item){
+    public void insert(Symbol item){
         //Hash
         String s = item.toString();
         int hash = hash(s);
@@ -97,7 +97,7 @@ public class SymbolTable {
      * @param hash - the hash value of the string
      * @param item - the item to be inserted
      */
-    public static void probeInsert(int hash,Symbol item){
+    public void probeInsert(int hash,Symbol item){
         boolean isFound = false;//boolean to know when found
         int walker = hash;//walker to walk on array
         int count = 1;//counter for probing
@@ -122,11 +122,11 @@ public class SymbolTable {
     }//end probeInsert
 
     //Used if using quadratic probing
-    public static int quadP(int x){
+    public int quadP(int x){
         return x*x;
     }//end quadP
 
-    public static void display(){
+    public void display(){
         for (Symbol symbol : arr) {
             if(symbol != null)
                 System.out.println(symbol.toString());

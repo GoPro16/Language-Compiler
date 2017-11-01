@@ -91,7 +91,6 @@ void baz;
 
 void quux(void) {}
 
-;
 int bar[56];
 void baz;
 
@@ -118,10 +117,9 @@ int three;
 int test(int foo)
 {
     int three;
-
     {
-        int three;
-	int four;
+    int four;
+    int three;
     }
 }
 

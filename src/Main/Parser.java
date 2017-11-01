@@ -8,14 +8,18 @@ public class Parser{
 
     private ArrayList<Token> tokenList;
     private int walker = 0;
+    SymbolTableIterator semanticsTable;
 
-    public Parser(ArrayList<Token> tokenList){
+    public Parser(ArrayList<Token> tokenList,int lineCount){
+        semanticsTable = new SymbolTableIterator(lineCount);
         this.tokenList = tokenList;
         tokenList.add(new Token("END", TokenType.END));
     }
 
     public void parse(){
         program();
+        if((walker+1) != tokenList.size())
+            reject();
         System.out.println("ACCEPT");
     }
 
@@ -142,9 +146,11 @@ public class Parser{
     private void compoundStmt(){
         if (tokenList.get(walker).toString().equals("{")){
             accept("{");
+            //Increment Table
             localDeclarations();
             statementList();
             accept("}");
+            //decrement depth
         }else
             reject();
     }
@@ -519,6 +525,7 @@ public class Parser{
     }
 
     private void accept(String value){
+        //System.out.println("Accepting:"+tokenList.get(walker).toString());
         if(!(tokenList.get(walker).equals(null))){
             switch(tokenList.get(walker).getType()) {
                 case ID:
@@ -540,10 +547,19 @@ public class Parser{
             }//switch to check valid input
         }else
             reject();
+
+        if(value.equals("{")){
+            semanticsTable.increaseDepth();
+            System.out.println("Depth After '{' : "+semanticsTable.getDepth());
+        }else if(value.equals("}")){
+            semanticsTable.decreaseDepth();
+            System.out.println("Depth After '}' : "+semanticsTable.getDepth());
+        }
         walker+=1;
     }
 
     private void reject(){
+        System.out.println("REJECTING: "+tokenList.get(walker).toString()+" Type: "+tokenList.get(walker).getType());
         System.out.println("REJECT");
         System.exit(0);
     }

@@ -57,7 +57,7 @@ public class Parser{
             accept(";");
         }else if(tokenList.get(walker).toString().equals("[")){
             accept("[");
-            accept("num");
+            accept("nonfloat");
             accept("]");
             accept(";");
         }else
@@ -283,7 +283,7 @@ public class Parser{
             termPrime();
             additiveExpressionPrime();
             relopExpression();
-        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+        }else if(tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT ){
             accept("num");
             termPrime();
             additiveExpressionPrime();
@@ -333,6 +333,9 @@ public class Parser{
     private void varArr(){
         if(tokenList.get(walker).toString().equals("[")){
             accept("[");
+            if(tokenList.get(walker).getType() == TokenType.FLOAT)
+                reject();
+
             expression();
             accept("]");
         }else if(tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")||
@@ -384,7 +387,7 @@ public class Parser{
             call();
             termPrime();
             additiveExpressionPrime();
-        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+        }else if(tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
             accept("num");
             termPrime();
             additiveExpressionPrime();
@@ -519,11 +522,11 @@ public class Parser{
                         reject();
                     break;
                 case FLOAT:
-                    if (!(value.equals("num")))
+                    if (!(value.equals("num")) || value.equals("nonfloat"))
                         reject();
                     break;
                 case NUM:
-                    if (!(value.equals("num")))
+                    if (!(value.equals("num")) && !(value.equals("nonfloat")))
                         reject();
                     break;
                 default:
@@ -537,7 +540,7 @@ public class Parser{
     }
 
     private void reject(){
-        System.out.println("REJECT");
+        System.out.println("REJECT");        
         System.exit(0);
     }
 
