@@ -149,11 +149,10 @@ public class Program {
                                 if(Character.isDigit(chars[x+1]) && chars[x-1] == 'E'){
                                     popToken();
                                     tokenBuilder.addErrorChar(c);
-                                }else if(chars[x+1] == ' '){
-                                    tokenList.add(new Token(c,TokenType.EXP));
                                 }else{
-                                    tokenBuilder.addErrorChar(c);
-                                }//if the next token is a digit
+                                    popToken();
+                                    tokenList.add(new Token(c,TokenType.EXP));
+                                }
                             }//if the current token is null
                         }
                        // System.out.println(c);

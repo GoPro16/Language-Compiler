@@ -3,6 +3,7 @@ package Structs;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 /**
  * Table for placing data items in
@@ -14,21 +15,46 @@ public class SymbolTable {
     private Symbol[] arr; // the array of items
     private int size;	//The size of the array
     private int maxSearch;
+    private boolean returnHasBeenCalled;
+    private String returnType;
+    private Token functionID;
+    private ArrayList<Symbol> paramsTable;
 
     /**
      * Constructor for the TokenTable
      * @param siz - the size of the table
      */
     public SymbolTable(int siz){
+        returnHasBeenCalled =false;
         size = siz;
         arr = new Symbol[size];
         maxSearch = 1;
+        paramsTable = new ArrayList<Symbol>();
         /*
         Files.lines(Paths.get(filename)).forEach(line -> {
             String temp[] = line.split(" ");
             insert(new Symbol(temp[0],temp[1]));
         });*/
     }//end HashTable
+
+
+    public String getReturnType(){
+        return returnType;
+    }
+
+    public Token getFunctionID(){
+        return functionID;
+    }
+
+
+    public void fillFunctionInfo(String returnType,Token functionID){
+        this.returnType = returnType;
+        this.functionID = functionID;
+    }
+
+    public ArrayList<Symbol> getParamsTable(){
+        return paramsTable;
+    }
 
     public Symbol find(String key){
         int walker;//walker to walk on array
@@ -74,6 +100,14 @@ public class SymbolTable {
         hash%=size;//Just in case its one character(will not affect if more)
         return hash;
     }//end hash
+
+    public boolean hasReturnBeenCalled(){
+        return returnHasBeenCalled;
+    }
+
+    public void returnHasbeenCalled(){
+        returnHasBeenCalled = true;
+    }
 
     /**
      * Insertion method for hash table
