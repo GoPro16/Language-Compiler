@@ -1,6 +1,7 @@
 package Main;
-
-import Structs.*;
+import Structs.Token;
+import Structs.TokenBuilder;
+import Structs.TokenType;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -67,6 +68,10 @@ public class Program {
             }else if(!(commentBlockCount > 0)){
                 //if there is no comment block, check for special tokens
                 switch(c){
+                    case '\t':
+                    case ' ':
+                        popToken();
+                        continue;
                     case '!':
                         popToken();
                         if(x+1<chars.length){

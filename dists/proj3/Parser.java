@@ -162,7 +162,7 @@ public class Parser{
     private void localDeclarations(){
         if (tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
             localDeclarationsPrime();
-        }else if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+        }else if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT||
                 tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
                 tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
             return;
@@ -175,7 +175,7 @@ public class Parser{
             Token idType = typeSpecifier();
             specifier(accept("id"),idType.toString());
             localDeclarationsPrime();
-        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT ||
                 tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
                 tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
             return;
@@ -184,7 +184,7 @@ public class Parser{
     }
 
     private void statementList(){
-        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT ||
                 tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
                 tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return"))
             statementListPrime();
@@ -195,7 +195,7 @@ public class Parser{
     }
 
     private void statementListPrime(){
-        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT ||
                 tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
                 tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")){
             statement();
@@ -207,7 +207,7 @@ public class Parser{
     }
 
     private void statement(){
-        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).toString().equals(";")){
+        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT || tokenList.get(walker).toString().equals(";")){
             expressionStmt();
         }else if(tokenList.get(walker).toString().equals("{")){
             semanticsTable.increaseDepth();
@@ -223,7 +223,7 @@ public class Parser{
     }
 
     private void expressionStmt(){
-        if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+        if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
             expression();
             accept(";");
         }else if(tokenList.get(walker).toString().equals(";")){
@@ -248,7 +248,7 @@ public class Parser{
         if(tokenList.get(walker).toString().equals("else")){
             accept("else");
             statement();
-        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM|| tokenList.get(walker).toString().equals(";")||
+        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT || tokenList.get(walker).toString().equals(";")||
                 tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")|| tokenList.get(walker).toString().equals("while")||
                 tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
             return;
@@ -276,7 +276,7 @@ public class Parser{
     }
 
     private void returnStmtPrime(){
-        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
             String returnType = expression();
             accept(";");
             //Temporary making it a nonnull return type
@@ -520,7 +520,6 @@ public class Parser{
         }else if(tokenList.get(walker).getType() == TokenType.NUM){
             accept("num");//This will be an issue later
             return "int";
-
         }else if(tokenList.get(walker).getType() == TokenType.FLOAT) {
             accept("num");//This will be an issue later
             return "float";
@@ -559,7 +558,7 @@ public class Parser{
     }
 
     private void args(Token functionId){
-        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
             argList(functionId);
         }else if (tokenList.get(walker).toString().equals(")"))
         	if(semanticsTable.getFunctionParametersLength(functionId) != 0)
@@ -571,7 +570,7 @@ public class Parser{
     }
 
     private void argList(Token functionId){
-        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
             String returnType = expression();
             semanticsTable.checkFunctionParameters(functionId,0,returnType);
             int lastIndex = argListPrime(functionId,1);
@@ -619,11 +618,13 @@ public class Parser{
             }//switch to check valid input
         }else
             reject();
+        //System.out.println("Accepted");
         return(tokenList.get(walker++));
     }
 
     private Token reject(){
-        //System.out.println("REJECTING: "+tokenList.get(walker).toString()+" Type: "+tokenList.get(walker).getType());
+       // System.out.println("REJECTING: "+tokenList.get(walker).toString()+" Type: "+tokenList.get(walker).getType());
+
         System.out.println("REJECT");
         System.exit(0);
         //This will never be reached

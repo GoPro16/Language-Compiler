@@ -1,5 +1,4 @@
 package Structs;
-
 import java.util.ArrayList;
 
 public class SymbolTableIterator {
@@ -175,12 +174,20 @@ public class SymbolTableIterator {
     }
 
     public void checkFunctionParameters(Token functionID,int index,String returnType){
-        String s = getFunctionById(functionID).getParamsTable().get(index).getType();
+    	if(getFunctionById(functionID).getParamsTable().size() > index){
+    		String s = getFunctionById(functionID).getParamsTable().get(index).getType();
         if(getFunctionById(functionID).getParamsTable().get(index).isArray())
             s+="arr";
         if(!s.equals(returnType)){
             semanticReject(111);
         }
+    	}else{
+    		semanticReject(113);
+    	}
+    }
+
+    public int getFunctionParametersLength(Token functionID){
+    	return getFunctionById(functionID).getParamsTable().size();
     }
     public Symbol getFunctionById(Token functionID){
         if(tables.get(0).find(functionID.toString()) != null){
@@ -251,6 +258,9 @@ public class SymbolTableIterator {
             case 112:
                 System.out.println("Array index can only be type int.");
                 break;
+            case 113:
+            	System.out.println("Parameters count don't agree");
+            	break;
             default:
                 System.out.println("Semantics Rejected this");
                 break;
