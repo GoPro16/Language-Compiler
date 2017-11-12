@@ -1,0 +1,1756 @@
+# This is a shell archive.  Save it in a file, remove anything before
+# this line, and then unpack it by entering "sh file".  Note, it may
+# create directories; files and directories will be owned by you and
+# have default permissions.
+#
+# This archive contains:
+#
+#	MainClass.java
+#	Parser.java
+#	Program.java
+#	Symbol.java
+#	SymbolTable.java
+#	SymbolTableIterator.java
+#	Token.java
+#	TokenBuilder.java
+#	TokenType.java
+#	file
+#
+echo x - MainClass.java
+sed 's/^X//' >MainClass.java << 'END-of-MainClass.java'
+Ximport java.io.File;
+Ximport java.io.IOException;
+X
+Xpublic class MainClass {
+X    public static void main(String[] args) throws IOException {
+X        Program p1 = new Program(new File(args[0]));
+X        //p1.printList();
+X        Parser parser = new Parser(p1.getTokenList(),p1.getLineCount());
+X        parser.parse();
+X    }//end main
+X}
+END-of-MainClass.java
+echo x - Parser.java
+sed 's/^X//' >Parser.java << 'END-of-Parser.java'
+Ximport java.util.ArrayList;
+X
+Xpublic class Parser{
+X
+X    private ArrayList<Token> tokenList;
+X    private int walker = 0;
+X    SymbolTableIterator semanticsTable;
+X
+X    public Parser(ArrayList<Token> tokenList,int lineCount){
+X        semanticsTable = new SymbolTableIterator(lineCount);
+X        this.tokenList = tokenList;
+X        tokenList.add(new Token("END", TokenType.END));
+X    }
+X
+X    public void parse(){
+X        program();
+X        if((walker+1) != tokenList.size())
+X            reject();
+X        System.out.println("ACCEPT");
+X    }
+X
+X    private void program(){
+X        declarationList();
+X    }
+X
+X    private void declarationList(){
+X        declaration();
+X        declarationListPrime();
+X        //Check if there is a main
+X        if(!semanticsTable.hasMain()){
+X            semanticsTable.semanticReject(105);
+X        }
+X    }
+X
+X    private void declaration(){
+X        if(tokenList.get(walker).toString().equals("int") || tokenList.get(walker).toString().equals("float") || tokenList.get(walker).toString().equals("void")){
+X            Token returnValue = typeSpecifier();
+X            declarationPrime(accept("id"),returnValue);
+X        }else
+X            reject();
+X    }
+X
+X    private void declarationListPrime(){
+X        if(tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            declaration();
+X            declarationListPrime();
+X        }
+X    }
+X
+X    private void declarationPrime(Token functionID,Token returnType){
+X        if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("[")){
+X            specifier(functionID,returnType.toString());
+X        }else if(tokenList.get(walker).toString().equals("(")){
+X            //Increment Table because we know at this point it is a function
+X            semanticsTable.increaseDepth();
+X            accept("(");
+X            params();
+X            //We have the parameters and the function name and return type so add this to the current symbol table
+X            semanticsTable.fillFunctionInformations(returnType,functionID);
+X            accept(")");
+X            compoundStmt();
+X        }else
+X            reject();
+X    }
+X
+X    private void specifier(Token id,String type){
+X        if(tokenList.get(walker).toString().equals(";")){
+X            accept(";");
+X            semanticsTable.findOrInsert(id,type,false,null,false,false);
+X        }else if(tokenList.get(walker).toString().equals("[")){
+X            accept("[");
+X            Token arrSize = accept("nonfloat");
+X            accept("]");
+X            accept(";");
+X            semanticsTable.findOrInsert(id,type,true,arrSize.toString(),false,false);
+X        }else
+X            reject();
+X    }
+X
+X    private Token typeSpecifier(){
+X        if(tokenList.get(walker).toString().equals("int")){
+X            return accept("int");
+X        }else if(tokenList.get(walker).toString().equals("float")){
+X           return accept("float");
+X        }else if(tokenList.get(walker).toString().equals("void")){
+X            return accept("void");
+X        }else
+X            return reject();
+X    }
+X
+X    private void params(){
+X        ArrayList<Token> paramTokens = new ArrayList<Token>();
+X        if(tokenList.get(walker).toString().equals("int")){
+X            accept("int");
+X            paramPrime(accept("id"),"int");
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals("float")){
+X            accept("float");
+X            paramPrime(accept("id"),"float");
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals("void")){
+X            accept("void");
+X            paramList();
+X        }else
+X            reject();
+X    }
+X
+X    private void paramList(){
+X        if(tokenList.get(walker).getType() == TokenType.ID){
+X            semanticsTable.semanticReject(104);
+X        }else if(tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void paramListPrime(){
+X        if(tokenList.get(walker).toString().equals(",")){
+X            accept(",");
+X            param();
+X            paramListPrime();
+X        }else if(tokenList.get(walker).toString().equals(")"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void param(){
+X        if(tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            String type = typeSpecifier().toString();
+X            paramPrime(accept("id"),type);
+X        }else
+X            reject();
+X    }
+X
+X
+X    private void paramPrime(Token param,String type){
+X        if(tokenList.get(walker).toString().equals("[")){
+X            accept("[");
+X            accept("]");
+X            //Token token,String type,boolean arr,boolean func,boolean init
+X            semanticsTable.addFuncParam(param,type,true);
+X        }else if(tokenList.get(walker).toString().equals(",")|| tokenList.get(walker).toString().equals(")")){
+X            semanticsTable.addFuncParam(param,type,false);
+X            return;
+X        }else
+X            reject();
+X    }
+X
+X    private void compoundStmt(){
+X        if (tokenList.get(walker).toString().equals("{")){
+X            accept("{");
+X            localDeclarations();
+X            statementList();
+X            accept("}");
+X            //decrement depth
+X            semanticsTable.decreaseDepth();
+X        }else
+X            reject();
+X    }
+X
+X    private void localDeclarations(){
+X        if (tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            localDeclarationsPrime();
+X        }else if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void localDeclarationsPrime(){
+X        if(tokenList.get(walker).toString().equals("int")|| tokenList.get(walker).toString().equals("float")|| tokenList.get(walker).toString().equals("void")){
+X            Token idType = typeSpecifier();
+X            specifier(accept("id"),idType.toString());
+X            localDeclarationsPrime();
+X        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void statementList(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return"))
+X            statementListPrime();
+X        else if(tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void statementListPrime(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM ||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")||
+X                tokenList.get(walker).toString().equals("while")|| tokenList.get(walker).toString().equals("return")){
+X            statement();
+X            statementListPrime();
+X        }else if(tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void statement(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).toString().equals(";")){
+X            expressionStmt();
+X        }else if(tokenList.get(walker).toString().equals("{")){
+X            semanticsTable.increaseDepth();
+X            compoundStmt();
+X        }else if(tokenList.get(walker).toString().equals("if")){
+X            selectionStmt();
+X        }else if(tokenList.get(walker).toString().equals("while")){
+X            iterationStmt();
+X        }else if(tokenList.get(walker).toString().equals("return")){
+X            returnStmt();
+X        }else
+X            reject();
+X    }
+X
+X    private void expressionStmt(){
+X        if (tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            expression();
+X            accept(";");
+X        }else if(tokenList.get(walker).toString().equals(";")){
+X            accept(";");
+X        }else
+X            reject();
+X    }
+X
+X    private void selectionStmt(){
+X        if(tokenList.get(walker).toString().equals("if")){
+X            accept("if");
+X            accept("(");
+X            expression();
+X            accept(")");
+X            statement();
+X            selectionStmtPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void selectionStmtPrime(){
+X        if(tokenList.get(walker).toString().equals("else")){
+X            accept("else");
+X            statement();
+X        }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM|| tokenList.get(walker).toString().equals(";")||
+X                tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")|| tokenList.get(walker).toString().equals("while")||
+X                tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}"))
+X            return;
+X        else
+X            reject();
+X    }
+X
+X    private void iterationStmt(){
+X        if(tokenList.get(walker).toString().equals("while")){
+X            accept("while");
+X            accept("(");
+X            expression();
+X            accept(")");
+X            statement();
+X        }else
+X            reject();
+X    }
+X
+X    private void returnStmt(){
+X        if (tokenList.get(walker).toString().equals("return")){
+X            accept("return");
+X            returnStmtPrime();
+X        }else
+X            reject();
+X    }
+X
+X    private void returnStmtPrime(){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            String returnType = expression();
+X            accept(";");
+X            //Temporary making it a nonnull return type
+X            semanticsTable.checkReturn(returnType);
+X        }else if(tokenList.get(walker).toString().equals(";")){
+X            accept(";");
+X            semanticsTable.checkReturn("void");
+X        }else
+X            reject();
+X        return;
+X    }
+X
+X    private String expression(){
+X        if(tokenList.get(walker).getType() == TokenType.ID){
+X            Token idToken = accept("id");
+X            return var(idToken);
+X        }else if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            String leftSideType = expression();
+X            accept(")");
+X            termPrime(leftSideType);
+X            additiveExpressionPrime(leftSideType);
+X            return relopExpression(leftSideType);
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");
+X            termPrime("int");
+X            additiveExpressionPrime("int");
+X            return relopExpression("int");
+X        }else if(tokenList.get(walker).getType() == TokenType.FLOAT ) {
+X            accept("num");
+X            termPrime("float");
+X            additiveExpressionPrime("float");
+X            return relopExpression("float");
+X        }else{
+X            reject();
+X            return null; //This will never be reached
+X        }
+X    }
+X
+X    private String var(Token idToken){
+X        if(tokenList.get(walker).toString().equals("[")|| tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")||
+X                tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")||
+X                tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
+X            String leftSideType = varArr(idToken);
+X            String rightSideType = varPrime(leftSideType);
+X            //Get the corresponding type from the table
+X            semanticsTable.checkTypes(leftSideType,rightSideType);
+X            return rightSideType;
+X        }else if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            args(idToken);
+X            accept(")");
+X            String leftSideType = termPrime(semanticsTable.getReturnTypeFromId(idToken));//pass the returntype of the function
+X            additiveExpressionPrime(leftSideType);
+X            return relopExpression(leftSideType);
+X        }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
+X            String leftSideType = varArr(idToken);
+X            String rightSideType = varPrime(leftSideType);
+X            //Get the corresponding type from the table
+X            semanticsTable.checkTypes(leftSideType,rightSideType);
+X            return rightSideType;
+X        }else{
+X            reject();
+X            return null;//This state is unreachable
+X        }
+X    }
+X
+X    private String varPrime(String leftSideType){
+X        if(tokenList.get(walker).toString().equals("=")){
+X            accept("=");
+X            String rightSideType = expression();
+X            return rightSideType;
+X        }else if(tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")||
+X                tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
+X            termPrime(leftSideType);
+X            additiveExpressionPrime(leftSideType);
+X            return relopExpression(leftSideType);
+X        }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
+X            termPrime(leftSideType);
+X            additiveExpressionPrime(leftSideType);
+X            return relopExpression(leftSideType);
+X        }else{
+X            reject();
+X            return null;//This state is unreachable
+X        }
+X    }
+X
+X    private String varArr(Token idToken){
+X        if(tokenList.get(walker).toString().equals("[")){
+X            accept("[");
+X            if(tokenList.get(walker).getType() == TokenType.FLOAT)
+X                reject();
+X
+X            String returnType = expression();//We may have to come back to this
+X            if(!returnType.equals("int"))
+X                semanticsTable.semanticReject(112);
+X            accept("]");
+X            return semanticsTable.getTypeFromId(idToken,true);
+X        }else if(tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")||
+X                tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("<=") || tokenList.get(walker).toString().equals("<") || tokenList.get(walker).toString().equals(">")||
+X                tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")||
+X                tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return semanticsTable.getTypeFromId(idToken,false);
+X        else{
+X            reject();
+X            return null;//This state is unreachable
+X        }
+X    }
+X
+X    private String relopExpression(String leftSideType){
+X        if(tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
+X            relop();
+X            String rightSideType = additiveExpression(leftSideType);
+X            semanticsTable.checkTypes(rightSideType,leftSideType);
+X            return rightSideType;
+X        }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return leftSideType;
+X        else{
+X            reject();//This will never be reached
+X            return null;
+X        }
+X    }
+X
+X    private void relop(){
+X        if(tokenList.get(walker).toString().equals("<=")){
+X            accept("<=");
+X        }else if(tokenList.get(walker).toString().equals("<")){
+X            accept("<");
+X        }else if(tokenList.get(walker).toString().equals(">")){
+X            accept(">");
+X        }else if(tokenList.get(walker).toString().equals(">=")){
+X            accept(">=");
+X        }else if(tokenList.get(walker).toString().equals("==")){
+X            accept("==");
+X        }else if(tokenList.get(walker).toString().equals("!=")){
+X            accept("!=");
+X        }else
+X            reject();
+X    }
+X
+X    private String additiveExpression(String leftSideType) {
+X        if (tokenList.get(walker).toString().equals("(")) {
+X            accept("(");
+X            String rightSideType = expression();
+X            accept(")");
+X            semanticsTable.checkTypes(rightSideType, leftSideType);
+X            termPrime(leftSideType);
+X            return additiveExpressionPrime(leftSideType);
+X        } else if (tokenList.get(walker).getType() == TokenType.ID) {
+X            String rightSideType = call(accept("id"));
+X            semanticsTable.checkTypes(rightSideType, leftSideType);
+X            termPrime(leftSideType);
+X            return additiveExpressionPrime(leftSideType);
+X        } else if (tokenList.get(walker).getType() == TokenType.NUM) {
+X            accept("num");
+X            termPrime("int");
+X            return additiveExpressionPrime("int");
+X        } else if (tokenList.get(walker).getType() == TokenType.FLOAT){
+X            accept("num");
+X            termPrime("float");
+X            return additiveExpressionPrime("float");
+X        }else{
+X            reject();
+X            return null;//This state is unreachable
+X        }
+X    }
+X
+X    private String additiveExpressionPrime(String leftSideType){
+X        if(tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")){
+X            addop();
+X            String rightSideType = term();
+X            semanticsTable.checkTypes(leftSideType,rightSideType);
+X            return additiveExpressionPrime(rightSideType);
+X        }else if(tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")||
+X                tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return leftSideType;
+X        else{
+X            reject();
+X            return null;//This will never be reached
+X        }
+X    }
+X
+X    private Token addop(){
+X        if(tokenList.get(walker).toString().equals("+")){
+X            return(accept("+"));
+X        }else if(tokenList.get(walker).toString().equals("-")){
+X            return(accept("-"));
+X        }else
+X            return reject();
+X    }
+X
+X    private String term(){
+X        if(tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            String leftSideType = expression();
+X            accept(")");
+X            return termPrime(leftSideType);
+X        }else if(tokenList.get(walker).getType() == TokenType.ID){
+X            String leftSideType = call(accept("id"));
+X            return termPrime(leftSideType);
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");
+X            return termPrime("int");
+X        } else{ if(tokenList.get(walker).getType() == TokenType.FLOAT){
+X            accept("num");
+X            return termPrime("float");
+X        }
+X            reject();
+X            return null; //This will never be reached
+X        }
+X
+X    }
+X
+X    private String termPrime(String leftSideType){
+X        if(tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")){
+X            mulop();
+X            String rightSideType = factor();
+X            semanticsTable.checkTypes(leftSideType,rightSideType);
+X            return termPrime(rightSideType);
+X        }else if(tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
+X                tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")||
+X                tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
+X            return leftSideType;
+X        else{
+X            reject();
+X            return null;//This will never be reached
+X        }
+X    }
+X
+X    private String factor(){
+X        if (tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            String sideType = expression();
+X            accept(")");
+X            return sideType;
+X        }else if(tokenList.get(walker).getType() == TokenType.ID){
+X            return call(accept("id"));
+X        }else if(tokenList.get(walker).getType() == TokenType.NUM){
+X            accept("num");//This will be an issue later
+X            return "int";
+X
+X        }else if(tokenList.get(walker).getType() == TokenType.FLOAT) {
+X            accept("num");//This will be an issue later
+X            return "float";
+X        }else{
+X            reject();
+X            return null;//THis state is unreachable
+X        }
+X    }
+X
+X    private void mulop(){
+X        if (tokenList.get(walker).toString().equals("*")){
+X            accept("*");
+X        }else if (tokenList.get(walker).toString().equals("/")){
+X            accept("/");
+X        }else
+X            reject();
+X    }
+X
+X    private String call(Token idToken){
+X        if (tokenList.get(walker).toString().equals("(")){
+X            accept("(");
+X            args(idToken);
+X            accept(")");
+X            return semanticsTable.getReturnTypeFromId(idToken);
+X        }else if (tokenList.get(walker).toString().equals("[")){
+X            return varArr(idToken);
+X        }else if(tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")||
+X                tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">")||
+X                tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")||
+X                tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
+X            return varArr(idToken);
+X        }else {
+X            reject();
+X            return null;//this will never be reached
+X        }
+X    }
+X
+X    private void args(Token functionId){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            argList(functionId);
+X        }else if (tokenList.get(walker).toString().equals(")"))
+X        	if(semanticsTable.getFunctionParametersLength(functionId) != 0)
+X        		semanticsTable.semanticReject(113);
+X        	else
+X            	return;
+X        else
+X            reject();
+X    }
+X
+X    private void argList(Token functionId){
+X        if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM){
+X            String returnType = expression();
+X            semanticsTable.checkFunctionParameters(functionId,0,returnType);
+X            int lastIndex = argListPrime(functionId,1);
+X            if(lastIndex != semanticsTable.getFunctionParametersLength(functionId))
+X            	semanticsTable.semanticReject(113);
+X        }else
+X            reject();
+X    }
+X
+X    private int argListPrime(Token functionId,int index){
+X        if(tokenList.get(walker).toString().equals(",")){
+X            accept(",");
+X            String returnType = expression();
+X            semanticsTable.checkFunctionParameters(functionId,index,returnType);
+X            return argListPrime(functionId,index+1);
+X        }else if(tokenList.get(walker).toString().equals(")"))
+X            return index;
+X        else{
+X            reject();
+X            return -1;
+X        }
+X
+X    }
+X
+X    private Token accept(String value){
+X        //System.out.println("Accepting:"+tokenList.get(walker).toString());
+X        if(!(tokenList.get(walker).equals(null))){
+X            switch(tokenList.get(walker).getType()) {
+X                case ID:
+X                    if (!(value.equals("id")))
+X                        reject();
+X                    break;
+X                case FLOAT:
+X                    if (!(value.equals("num")) || value.equals("nonfloat"))
+X                        reject();
+X                    break;
+X                case NUM:
+X                    if (!(value.equals("num")) && !(value.equals("nonfloat")))
+X                        reject();
+X                    break;
+X                default:
+X                    if (!(value.equals(tokenList.get(walker).toString())))
+X                        reject();
+X                    break;
+X            }//switch to check valid input
+X        }else
+X            reject();
+X        return(tokenList.get(walker++));
+X    }
+X
+X    private Token reject(){
+X        //System.out.println("REJECTING: "+tokenList.get(walker).toString()+" Type: "+tokenList.get(walker).getType());
+X        System.out.println("REJECT");
+X        System.exit(0);
+X        //This will never be reached
+X        return null;
+X    }
+X
+X
+X
+X}
+END-of-Parser.java
+echo x - Program.java
+sed 's/^X//' >Program.java << 'END-of-Program.java'
+Ximport java.io.*;
+Ximport java.util.ArrayList;
+X
+Xpublic class Program {
+X
+X    private BufferedReader reader;
+X    private ArrayList<Token> tokenList;
+X    private TokenBuilder tokenBuilder;
+X    private int commentBlockCount;
+X    private int lineCount;
+X    public Program(File f) throws IOException {
+X        lineCount = 0;
+X        commentBlockCount = 0;
+X        tokenBuilder = new TokenBuilder();
+X        reader = new BufferedReader(new FileReader(f));
+X        tokenList = new ArrayList<Token>();
+X        String line;
+X        while((line = reader.readLine()) != null){
+X            lineCount++;
+X            if(line.trim().length() != 0){
+X                parseLine(line);
+X            }
+X        }
+X        //printList();
+X        ArrayList<Token> temp = new ArrayList<Token>();
+X        for(int x=0;x<tokenList.size();x++){
+X            if(!(tokenList.get(x).getType() == TokenType.COM || tokenList.get(x).getType() == TokenType.NCOM)){
+X                temp.add(tokenList.get(x));
+X            }
+X        }//ensure no nested comments for parser
+X        tokenList = temp;
+X    }
+X
+X    public int getLineCount(){
+X        return lineCount;
+X    }
+X
+X    public boolean parseLine(String line){
+X        //System.out.println("INPUT: "+line);
+X        char chars[] = line.toCharArray();
+X        char c;
+X        for(int x = 0;x<chars.length;x++){
+X            c = chars[x];
+X            //System.out.println("Char: "+ c);
+X            if(commentBlockCount > 0 && chars.length > x+1){
+X                switch(c){
+X                    case '/':
+X                        if(chars[x+1] == '*'){
+X                            tokenList.add(new Token("/*",TokenType.NCOM));
+X                            commentBlockCount++;
+X                            ++x;
+X                        }
+X                        break;
+X                    case '*':
+X                        if(chars[x+1] == '/'){
+X                            tokenList.add(new Token("*/",TokenType.NCOM));
+X                            commentBlockCount--;
+X                            ++x;
+X                        }
+X                        break;
+X                }//comment blocks
+X                continue;
+X            }else if(!(commentBlockCount > 0)){
+X                //if there is no comment block, check for special tokens
+X                switch(c){
+X                    case '!':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token("!=",TokenType.EXP));
+X                                //System.out.println("!=");
+X                                ++x;
+X                                continue;
+X                            }
+X                        }
+X                        tokenList.add(new Token("!", TokenType.ERROR));
+X                        //System.out.println("ERROR: !");
+X                        continue;
+X                    case '=':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token("==",TokenType.EXP));
+X                               // System.out.println("==");
+X                                ++x;
+X                            }else{
+X                                tokenList.add(new Token("=", TokenType.EXP));
+X                                //System.out.println("=");
+X                            }
+X                        }
+X                        continue;
+X                    case '>':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token(">=",TokenType.EXP));
+X                                // System.out.println(">=");
+X                                ++x;
+X                            }else{
+X                                tokenList.add(new Token(">",TokenType.EXP));
+X                                // System.out.println(">");
+X                            }
+X
+X                        }
+X                        continue;
+X                    case '<':
+X                        popToken();
+X                        if(x+1<chars.length){
+X                            if(chars[x+1] == '='){
+X                                tokenList.add(new Token("<=",TokenType.EXP));
+X                                // System.out.println(">=");
+X                                ++x;
+X                            }else{
+X                                tokenList.add(new Token("<",TokenType.EXP));
+X                                // System.out.println(">");
+X                            }
+X
+X                        }
+X                        continue;
+X                    case '(':
+X                    case ')':
+X                    case '{':
+X                    case '}':
+X                    case ',':
+X                    case '[':
+X                    case ';':
+X                    case ']':
+X                    case '*':
+X                        popToken();
+X                        tokenList.add(new Token(c,TokenType.EXP));
+X                        //System.out.println(c);
+X                        continue;
+X                    case '+':
+X                    case '-':
+X                        if(x+1>chars.length){
+X                            popToken();
+X                            tokenBuilder.addErrorChar(c);
+X                        }else{
+X                            if(tokenBuilder.getCurrentToken() != null){
+X                                if(tokenBuilder.getCurrentToken().getType() != TokenType.NUM){
+X                                    popToken();
+X                                    tokenList.add(new Token(c,TokenType.EXP));
+X                                }//if the current token is not a number currentlys
+X                            }else{
+X                                if(Character.isDigit(chars[x+1]) && chars[x-1] == 'E'){
+X                                    popToken();
+X                                    tokenBuilder.addErrorChar(c);
+X                                }else{
+X                                    popToken();
+X                                    tokenList.add(new Token(c,TokenType.EXP));
+X                                }
+X                            }//if the current token is null
+X                        }
+X                       // System.out.println(c);
+X                        continue;
+X                    case '/':
+X                        if(x+1 >= chars.length){
+X                            popToken();
+X                            tokenList.add(new Token("/",TokenType.EXP));
+X                          //  System.out.println("/");
+X                            continue;
+X                        }else{
+X                            switch(chars[x+1]){
+X                                case '/':
+X                                    popToken();
+X                                    tokenList.add(new Token("//",TokenType.COM));
+X                                    ++x;
+X                                    return true;
+X                                case '*':
+X                                    popToken();
+X                                    tokenList.add(new Token("/*",TokenType.NCOM));
+X                                    ++x;
+X                                    ++commentBlockCount;
+X                                    break;
+X                                default:
+X                                    popToken();
+X                                    tokenList.add(new Token("/",TokenType.EXP));
+X                                   // System.out.println('/');
+X                                    break;
+X                            }//check if comment block or just divide by sign
+X                            continue;
+X                        }
+X                }
+X            }//end special chars
+X            //Must be an id or a keyword
+X            if(c == ' ' && tokenBuilder.getCurrentToken() != null){
+X                tokenList.add(tokenBuilder.create());
+X            }else if(tokenBuilder.getCurrentToken() != null){
+X                //check if float
+X                if(tokenBuilder.getCurrentToken().getType() == TokenType.NUM){
+X                    boolean isNum = true,running = true;
+X                    do{
+X                        String temp = Character.toString(tokenBuilder.getCurrentToken().toString().toCharArray()[tokenBuilder.getCurrentToken().length()-1]);
+X                        c = chars[x];
+X                        switch(temp){
+X                            case "E":
+X                                if((temp+c).matches("E(-|\\+|\\d)")){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    isNum = false;
+X                                    --x;
+X                                }
+X                                break;
+X                            case "-":
+X                            case "+":
+X                            case ".":
+X                                if(Character.isDigit(c)){
+X                                    tokenBuilder.getCurrentToken().addChar(c);
+X                                    if(!temp.equals("+"))
+X                                        tokenBuilder.getCurrentToken().setType(TokenType.FLOAT);
+X                                    ++x;
+X                                }else{
+X                                    isNum = false;
+X                                    --x;
+X                                }
+X                                break;
+X                            default:
+X                                if((temp+c).matches("\\d+")){
+X                                    tokenBuilder.addChar(c);
+X                                    ++x;
+X                                }else{
+X                                    switch(c){
+X                                        case '.':
+X                                            if(tokenBuilder.getCurrentToken().toString().chars().filter(ch -> ch == '.').count() == 1){
+X                                                running = false;
+X                                                --x;
+X                                            }else{
+X                                                tokenBuilder.getCurrentToken().addChar(c);
+X                                                ++x;
+X                                            }
+X                                            break;
+X                                        case 'E':
+X                                            if(tokenBuilder.getCurrentToken().toString().chars().filter(ch -> ch == 'E').count() == 1){
+X                                                running = false;
+X                                                --x;
+X                                            }else{
+X                                                tokenBuilder.getCurrentToken().addChar(c);
+X                                                ++x;
+X                                            }
+X                                            break;
+X                                        default:
+X                                            running = false;
+X                                            --x;
+X                                            break;
+X                                    }
+X                                }
+X
+X                        }
+X                    }while(running && isNum && (x < chars.length));
+X                    if(!isNum || !tokenBuilder.getCurrentToken().toString().matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?")){
+X                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+X                        popToken();
+X                    }else if(Character.isLetter(c)){
+X                        popToken();
+X                        tokenBuilder.addChar(c);
+X                        tokenBuilder.getCurrentToken().setType(TokenType.ERROR);
+X                        ++x;
+X                    }else{
+X                        popToken();
+X                    }
+X                    continue;
+X                }//test for float
+X
+X                if(!tokenBuilder.getCurrentToken().checkType(c)){
+X                    popToken();
+X                    tokenBuilder.addErrorChar(c);
+X                }else {
+X                    tokenBuilder.addChar(c);
+X                }
+X            }else if( c != ' ' && tokenBuilder.getCurrentToken() == null && commentBlockCount == 0){
+X                    tokenBuilder.addChar(c);
+X            }
+X        }//end for
+X        if(tokenBuilder.getCurrentToken() != null && commentBlockCount == 0){
+X            popToken();
+X        }
+X        return true;
+X    }
+X
+X    public boolean parseChar(char c) {
+X        return false;
+X    }
+X
+X    public void popToken(){
+X        if(tokenBuilder.getCurrentToken() != null){
+X            //System.out.println(tokenBuilder.getCurrentToken().toString());
+X            tokenList.add(tokenBuilder.create());
+X        }
+X    }
+X
+X    public ArrayList<Token> getTokenList(){
+X        return this.tokenList;
+X    }
+X
+X    public void printList(){
+X        tokenList.forEach(token -> {
+X            System.out.println(token.toString());
+X        });
+X    }
+X}//Program
+END-of-Program.java
+echo x - Symbol.java
+sed 's/^X//' >Symbol.java << 'END-of-Symbol.java'
+Ximport java.lang.reflect.Array;
+Ximport java.util.ArrayList;
+X
+Xpublic class Symbol {
+X
+X    private Token token;
+X    private String type;
+X    private boolean arr;
+X    private String arrSize;
+X    private boolean func;
+X    private boolean init;
+X    private ArrayList<Symbol> paramsTable;
+X
+X    public Symbol(Token token,String type,boolean arr,String arrSize,boolean func,boolean init){
+X        this.type = type;
+X        this.token = token;
+X        this.arr = arr;
+X        this.arrSize = arrSize;
+X        this.func = func;
+X        this.init = init;
+X    }//end constructor
+X
+X    public String getType(){
+X        return type;
+X    }
+X
+X    public void setParamsTable(ArrayList<Symbol> paramsTable){
+X        this.paramsTable = paramsTable;
+X    }
+X    public ArrayList<Symbol> getParamsTable(){
+X        return paramsTable;
+X    }
+X
+X    public boolean isArray(){
+X        return arr;
+X    }
+X
+X    public boolean isFunction(){
+X        return func;
+X    }
+X    public String toString(){
+X        return token.toString();
+X    }
+X    public Token get(){
+X        return this.token;
+X    }
+X
+X}
+END-of-Symbol.java
+echo x - SymbolTable.java
+sed 's/^X//' >SymbolTable.java << 'END-of-SymbolTable.java'
+Ximport java.io.IOException;
+Ximport java.nio.file.Files;
+Ximport java.nio.file.Paths;
+Ximport java.util.ArrayList;
+X
+X/**
+X * Table for placing data items in
+X * an array
+X * @author Kyle
+X */
+Xpublic class SymbolTable {
+X
+X    private Symbol[] arr; // the array of items
+X    private int size;	//The size of the array
+X    private int maxSearch;
+X    private boolean returnHasBeenCalled;
+X    private String returnType;
+X    private Token functionID;
+X    private ArrayList<Symbol> paramsTable;
+X
+X    /**
+X     * Constructor for the TokenTable
+X     * @param siz - the size of the table
+X     */
+X    public SymbolTable(int siz){
+X        returnHasBeenCalled =false;
+X        size = siz;
+X        arr = new Symbol[size];
+X        maxSearch = 1;
+X        paramsTable = new ArrayList<Symbol>();
+X        /*
+X        Files.lines(Paths.get(filename)).forEach(line -> {
+X            String temp[] = line.split(" ");
+X            insert(new Symbol(temp[0],temp[1]));
+X        });*/
+X    }//end HashTable
+X
+X
+X    public String getReturnType(){
+X        return returnType;
+X    }
+X
+X    public Token getFunctionID(){
+X        return functionID;
+X    }
+X
+X
+X    public void fillFunctionInfo(String returnType,Token functionID){
+X        this.returnType = returnType;
+X        this.functionID = functionID;
+X    }
+X
+X    public ArrayList<Symbol> getParamsTable(){
+X        return paramsTable;
+X    }
+X
+X    public Symbol find(String key){
+X        int walker;//walker to walk on array
+X        int count = 1;//counter for probing
+X        int  newHash;
+X        boolean found = false;
+X        int hash = hash(key);
+X        if(arr[hash] != null && arr[hash].toString().equals(key)){
+X            return arr[hash];
+X        }
+X        while(!found){
+X            walker = hash;
+X            newHash = quadP(count++);
+X            for(int x=newHash;x>0;x--){
+X                if(++walker == arr.length){
+X                    walker = 0;
+X                }
+X            }
+X            if(arr[walker] != null && arr[walker].toString().equals(key)){
+X                return arr[walker];
+X            }//if the array item is null or
+X            if(count>maxSearch){
+X                break;
+X            }
+X
+X
+X        }
+X        return null;
+X    }
+X
+X    /**
+X     * Hashes the given string
+X     * @param s - the string to hash
+X     * @return - the value of the hashed string
+X     */
+X    public int hash(String s){
+X        int hash = 0;
+X        char[] arr = s.toCharArray();
+X        hash=arr[0];
+X        for(int x=1;x<arr.length;x++){
+X            hash=(hash*26+arr[x])%size;
+X        }//hash the string
+X        hash%=size;//Just in case its one character(will not affect if more)
+X        return hash;
+X    }//end hash
+X
+X    public boolean hasReturnBeenCalled(){
+X        return returnHasBeenCalled;
+X    }
+X
+X    public void returnHasbeenCalled(){
+X        returnHasBeenCalled = true;
+X    }
+X
+X    /**
+X     * Insertion method for hash table
+X     * @param item - the item to be inserted
+X     */
+X    public void insert(Symbol item){
+X        //Hash
+X        String s = item.toString();
+X        int hash = hash(s);
+X
+X        //insert
+X        if(arr[hash] == null){
+X            arr[hash] = item;
+X        }else{//if the index is null or there is a deleted item
+X            probeInsert(hash,item);
+X        }//else probe until valid insertion
+X    }//end insert
+X
+X    /**
+X     * probeInsertion
+X     * @param hash - the hash value of the string
+X     * @param item - the item to be inserted
+X     */
+X    public void probeInsert(int hash,Symbol item){
+X        boolean isFound = false;//boolean to know when found
+X        int walker = hash;//walker to walk on array
+X        int count = 1;//counter for probing
+X        int  newHash = hash;//New hash value
+X
+X        while(!isFound){
+X            walker = hash;
+X            newHash = quadP(count++);
+X            for(int x=newHash;x>0;x--){
+X                if(++walker == arr.length){
+X                    walker = 0;
+X                }
+X            }
+X            if(arr[walker]== null){
+X                arr[walker] = item;
+X                isFound = true;
+X            }//if the array item is null or
+X        }//while the item position isn't found
+X        if(count>maxSearch){
+X            maxSearch = count;
+X        }
+X    }//end probeInsert
+X
+X    //Used if using quadratic probing
+X    public int quadP(int x){
+X        return x*x;
+X    }//end quadP
+X
+X    public void display(){
+X        for (Symbol symbol : arr) {
+X            if(symbol != null)
+X                System.out.println(symbol.toString());
+X        }
+X    }
+X
+X
+X}//end HashTable
+END-of-SymbolTable.java
+echo x - SymbolTableIterator.java
+sed 's/^X//' >SymbolTableIterator.java << 'END-of-SymbolTableIterator.java'
+Ximport java.util.ArrayList;
+X
+Xpublic class SymbolTableIterator {
+X
+X    private int length;
+X    private int current;
+X    private int size;
+X    private boolean mainHasBeenDeclared;
+X    private ArrayList<SymbolTable> tables;
+X
+X    public SymbolTableIterator(int size){
+X        //System.out.println(size);
+X        length=0;
+X        this.size = size;
+X        tables = new ArrayList<SymbolTable>();
+X        tables.add(new SymbolTable(this.size));
+X    }
+X
+X
+X    public void increaseDepth() {
+X        tables.add(new SymbolTable(this.size));
+X        length++;
+X    }
+X
+X    public boolean hasMain(){
+X        return mainHasBeenDeclared;
+X    }
+X
+X    public void checkTypes(String leftSideType,String rightSideType){
+X        if(!leftSideType.equals(rightSideType))
+X            semanticReject(108);
+X    }
+X
+X    public void checkReturn(String type){
+X        tables.get(length).returnHasbeenCalled();
+X        if(tables.get(length).getReturnType().equals("void")){
+X            if(!type.equals("void"))
+X                semanticReject(102);
+X        }else{//if the returnType is void but the returnValue isn't void then throw error
+X            if(type.equals("void")){
+X                semanticReject(102);
+X            }else{//if the returnType is not void but the returned value is void then throw error
+X                //Else There is a return value and now we have to check the type
+X            }
+X        }
+X    }
+X
+X    public int getDepth(){
+X        return length;
+X    }
+X
+X    public void addFuncParam(Token t,String type,boolean arr){
+X        if(tables.get(length).getParamsTable().contains(t.toString()) == false)
+X            tables.get(length).getParamsTable().add(new Symbol(t,type,arr,null,false,false));
+X        else
+X            semanticReject(101);
+X    }
+X
+X    public void fillFunctionInformations(Token returnType,Token functionID){
+X        if(!mainHasBeenDeclared){
+X            if(functionID.toString().equals("main"))
+X                mainHasBeenDeclared = true;
+X        }else{
+X            semanticReject(103);
+X        }
+X        tables.get(length).fillFunctionInfo(returnType.toString(),functionID);
+X        tables.get(length-1).insert(new Symbol(functionID,returnType.toString(),false,null,true,true));
+X        tables.get(length-1).find(functionID.toString()).setParamsTable(tables.get(length).getParamsTable());
+X    }
+X
+X    public void findOrInsert(Token token,String type,boolean arr,String arrSize,boolean func,boolean initialzed){
+X        if(initialzed){
+X            current = length;
+X            boolean isFound =false;
+X            do{
+X                //try to find the symbol somewhere in the table
+X                current--;
+X            }while(current <= 0);
+X        }else{//if the token is claimed to already initialized
+X            //Try to insert it
+X            if(tables.get(length).find(token.toString()) != null || tables.get(length).getParamsTable().contains(token.toString()) != false){
+X                //Then throw a token exists error
+X                semanticReject(106);
+X            }else{
+X                tables.get(length).insert(new Symbol(token,type,arr,arrSize,func,initialzed));
+X            }
+X        }//if the token is claimed to not initialized
+X        current = length;
+X        //This is where we find or insert the current symbol. Error reporting is done here
+X        if(tables.get(current).find(token.toString()) != null){
+X            //The token exists make sure that it is being used and not declared else error
+X        }else{
+X
+X        }
+X    }
+X
+X    public void checkTypesUsingId(Token leftSideToken,String rightSideType){
+X        current = length;
+X        boolean found = false;
+X        while(current >= 0){
+X            if(tables.get(current).find(leftSideToken.toString()) != null){
+X                String leftSideType = tables.get(current).find(leftSideToken.toString()).getType();
+X                if(leftSideType.equals(rightSideType)) {
+X                    found = true;
+X                    break;
+X                }else{
+X                    semanticReject(108);
+X                }
+X            }else{
+X                for(int x=0;x<tables.get(current).getParamsTable().size();x++){
+X                    if(tables.get(current).getParamsTable().get(x).toString().equals(leftSideToken.toString())){
+X                        String leftSideType = tables.get(current).getParamsTable().get(x).getType();
+X                        if(leftSideType.equals(rightSideType)) {
+X                            found = true;
+X                            break;
+X                        }else{
+X                            semanticReject(108);
+X                        }
+X                    }
+X                }
+X            }
+X            current--;
+X        }//while the current is not passed the root level
+X        if(!found)
+X            semanticReject(110);
+X    }
+X
+X    public String getReturnTypeFromId(Token t){
+X        String s = "s";
+X        current = length;
+X        while(current >= 0){
+X            if(tables.get(current).find(t.toString()) != null){
+X                if(tables.get(current).find(t.toString()).isFunction()){
+X                    s = tables.get(current).find(t.toString()).getType();
+X                    break;
+X                }
+X            }
+X            current--;
+X        }
+X        if(s.equals("s"))
+X            semanticReject(109);
+X        return s;
+X    }
+X
+X    public String getTypeFromId(Token idToken,boolean indexing){
+X        String s = "s";
+X        current = length;
+X        while(current >= 0){
+X            if(tables.get(current).find(idToken.toString()) != null){
+X                if(tables.get(current).find(idToken.toString()).isArray() && !indexing){
+X                    s = tables.get(current).find(idToken.toString()).getType()+"arr";
+X                }else
+X                    s = tables.get(current).find(idToken.toString()).getType();
+X                break;
+X            }else{
+X                for(int x=0;x<tables.get(current).getParamsTable().size();x++){
+X                    if(tables.get(current).getParamsTable().get(x).toString().equals(idToken.toString())){
+X                        if(tables.get(current).getParamsTable().get(x).isArray() && !indexing){
+X                            s = tables.get(current).getParamsTable().get(x).getType()+"arr";
+X                        }else
+X                            s = tables.get(current).getParamsTable().get(x).getType();
+X                        break;
+X                    }
+X                }
+X            }
+X            current--;
+X        }
+X        if(s.equals("s")){
+X            semanticReject(110);
+X        }
+X
+X        return s;
+X    }
+X
+X    public void checkFunctionParameters(Token functionID,int index,String returnType){
+X    	if(getFunctionById(functionID).getParamsTable().size() > index){
+X    		String s = getFunctionById(functionID).getParamsTable().get(index).getType();
+X        if(getFunctionById(functionID).getParamsTable().get(index).isArray())
+X            s+="arr";
+X        if(!s.equals(returnType)){
+X            semanticReject(111);
+X        }
+X    	}else{
+X    		semanticReject(113);
+X    	}
+X    }
+X
+X    public int getFunctionParametersLength(Token functionID){
+X    	return getFunctionById(functionID).getParamsTable().size();
+X    }
+X    public Symbol getFunctionById(Token functionID){
+X        if(tables.get(0).find(functionID.toString()) != null){
+X            return tables.get(0).find(functionID.toString());
+X        }
+X        semanticReject(109);
+X        return null;
+X    }
+X
+X    public void decreaseDepth(){
+X        if(length > 0){
+X            //System.out.println(length);
+X            if(tables.get(length).getFunctionID() != null){
+X                if(!tables.get(length).getReturnType().equals("void") && !tables.get(length).hasReturnBeenCalled()){
+X                    semanticReject(107);
+X                }
+X            }
+X            tables.remove(length--);
+X        }else//if we aren't at the root level
+X            semanticReject(100);
+X    }
+X
+X
+X    public void semanticReject(int status){
+X        System.out.println("REJECT");
+X        //printReport(status);
+X        System.exit(0);
+X    }
+X
+X    public void printReport(int status){
+X        switch(status){
+X            case 100:
+X                System.out.println("Decreasing Depth Error");
+X                break;
+X            case 101:
+X                System.out.println("Two or more parameters have the same ID.");
+X                break;
+X            case 102:
+X                System.out.println("Function return value error");
+X                break;
+X            case 103:
+X                System.out.println("functions declared after main.");
+X                break;
+X            case 104:
+X                System.out.println("Cannot have a void ID");
+X                break;
+X            case 105:
+X                System.out.println("No Main Function Found.");
+X                break;
+X            case 106:
+X                System.out.println("ID has been declared once already.");
+X                break;
+X            case 107:
+X                System.out.println("Function requires a return type");
+X                break;
+X            case 108:
+X                System.out.println("Left Side Type Doesn't agree with right side.");
+X                break;
+X            case 109:
+X                System.out.println("Function not defined.");
+X                break;
+X            case 110:
+X                System.out.println("ID has not been declared");
+X                break;
+X            case 111:
+X                System.out.println("Parameter doesn't agree with function");
+X                break;
+X            case 112:
+X                System.out.println("Array index can only be type int.");
+X                break;
+X            case 113:
+X            	System.out.println("Parameters count don't agree");
+X            	break;
+X            default:
+X                System.out.println("Semantics Rejected this");
+X                break;
+X        }
+X    }
+X
+X
+X}
+END-of-SymbolTableIterator.java
+echo x - Token.java
+sed 's/^X//' >Token.java << 'END-of-Token.java'
+Xpublic class Token {
+X
+X    private TokenType type;
+X    private String value;
+X
+X    public Token(){value="";}
+X
+X    public Token(char value, TokenType type){
+X        this.value = Character.toString(value);
+X        this.type = type;
+X    }
+X    public Token(String value,TokenType type){
+X        this.value = value;
+X        this.type = type;
+X    }
+X
+X    public void setType(TokenType type){
+X        this.type = type;
+X    }
+X
+X    public boolean checkType(char c){
+X        switch(type){
+X            case NUM:
+X                return (value+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?");
+X            case ID:
+X                return (value+c).chars().allMatch(Character::isLetter);
+X            default:
+X                return true;
+X        }
+X    }
+X
+X    public int length(){
+X        return value.length();
+X    }
+X    public TokenType getType(){
+X        return type;
+X    }
+X
+X    public String display(){
+X        switch(type){
+X            case NUM:
+X                return "NUM: "+value;
+X            case FLOAT:
+X                return "FLOAT: "+value;
+X            case ID:
+X                return "ID: "+value;
+X            case COM:
+X            case NCOM:
+X                return null;
+X            case KEYWORD:
+X                return "keyword: "+value;
+X            case ERROR:
+X                return "ERROR:"+value;
+X            default:
+X                return value;
+X        }
+X    }
+X
+X
+X    public void addChar(char c){
+X        value+=c;
+X    }
+X
+X    public String toString(){
+X        return value;
+X    }
+X
+X}
+END-of-Token.java
+echo x - TokenBuilder.java
+sed 's/^X//' >TokenBuilder.java << 'END-of-TokenBuilder.java'
+Xpublic class TokenBuilder {
+X
+X    private Token token;
+X    private int depth;
+X
+X    public TokenBuilder(){
+X        depth = 0;
+X    }
+X
+X    public void addChar(char c){
+X        if(token == null) {
+X            token = new Token();
+X                if (Character.isDigit(c)) {
+X                    token.setType(TokenType.NUM);
+X                } else if(Character.toString(c).matches(".*[a-z].*")){
+X                    token.setType(TokenType.ID);
+X                }else{
+X                    //System.out.println("ERROR:"+c+";");
+X                    token.setType(TokenType.ERROR);
+X                }
+X                token.addChar(c);
+X        }else if(token.getType() == TokenType.ERROR) {
+X                token.addChar(c);
+X        }else{
+X            switch(token.toString()+c) {
+X                case"int":
+X                case "float":
+X                case "void":
+X                case "while":
+X                case "return":
+X                case "if":
+X                case "else":
+X                    token.setType(TokenType.KEYWORD);
+X                    break;
+X                default:
+X                    switch(token.getType()){
+X                        case ID:
+X                            if(Character.isDigit(c) || !(token.toString()+c).matches(".*[a-z].*")){
+X                                create();
+X                                token = new Token(c,TokenType.ERROR);
+X                            }
+X                            break;
+X                        case KEYWORD:
+X                            token.setType(TokenType.ID);
+X                            break;
+X                        case NUM:
+X                            if(!((token.toString()+c).matches("(\\d+)(\\.\\d+)?(E(-|\\+)?\\d+)?"))){
+X                                //System.out.println("NOT A NUMBER:"+c);
+X                                create();
+X                                token = new Token(c,TokenType.ERROR);
+X                            }
+X                            break;
+X                    }
+X            }
+X                token.addChar(c);
+X            }
+X        }
+X
+X    public Token getCurrentToken(){
+X        return token;
+X    }
+X
+X    public void addErrorChar(char c){
+X        if(token == null){
+X            token = new Token(c,TokenType.ERROR);
+X        }else{
+X            token.addChar(c);
+X        }
+X    }
+X
+X
+X    public Token create(){
+X        Token t = token;
+X        //System.out.println(token.display());
+X        token = null;
+X        return t;
+X    }
+X}
+END-of-TokenBuilder.java
+echo x - TokenType.java
+sed 's/^X//' >TokenType.java << 'END-of-TokenType.java'
+Xpublic enum TokenType {
+X    ID,EXP,BRACES,BRACKETS,PARENS,NUM,KEYWORD,ERROR,NCOM,COM,FLOAT,END
+X}
+END-of-TokenType.java
+echo x - file
+sed 's/^X//' >file << 'END-of-file'
+X//Test files found @ https://github.com/benfowler/c-minus/tree/master/tests
+X
+Xint foo(void){
+X    return 1;
+X}
+X
+X
+Xvoid maine(void){
+X    int i;
+X    int a[30];
+X
+X    int c;
+X    int d;
+X
+X    a[a[1]] = 3 / 3;
+X
+X    while (1 == (a[4] + 1));
+X
+X    c = foo();
+X
+X    i = 2;
+X    i = 4;
+X}
+X
+Xfloat three[2];
+X
+X
+Xint test(int foo)
+X{
+X    int three;
+X
+X    {
+X        int three;
+X        int four;
+X    }
+X    return 2;
+X}
+X
+Xint maineee(void)
+X{
+X    int gh[45];
+X
+X    return test(4);
+X}
+X
+Xint bar[56];
+X
+Xvoid output(int x,int y,int z[],int w){
+X    return;
+X}
+X
+Xint foobar(int one, int two[], void three) {
+X   int foo;
+X   int bar[56];
+X
+X   if (foo == bar[4])
+X   {
+X       if (bar[2] == 35)
+X           test(3);
+X   }
+X   else
+X       output(2, bar[2], bar, bar[foo*2]);
+X
+X   return bar[45];
+X}
+X
+Xvoid quux(void) {}
+X
+Xint foobarr(int one, int two[], void three) {
+Xint foo;
+Xint bar[56];
+X
+X   bar[foo] = 1 + 1;
+X
+X   return bar[45];
+X}
+X
+X
+Xvoid quuxeeee(void) {}
+X
+Xint i;
+Xint j;
+X
+Xint array[20E3];
+X
+X
+Xvoid input(int y){
+Xreturn;
+X}
+X
+Xint food(int a, int b)
+X{
+X    input(a);
+X    return test(b);
+X}
+X
+Xvoid mainfd(void)
+X{
+X    food(42, 21);
+X}
+X
+X
+Xvoid mainddea(void)
+X{
+X    float b[20];
+X    int i;
+X
+X    b[0] = 21.3;
+X    input(i);
+X}
+X
+Xvoid main(void)
+X{
+X    int i;
+X
+X    i = 0;
+X
+X    while (i < 10)
+X    {
+X        i = i + 1;
+X        input(i);
+X    }
+X}
+END-of-file
+exit
+
