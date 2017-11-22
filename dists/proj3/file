@@ -1,9 +1,8 @@
 //Test files found @ https://github.com/benfowler/c-minus/tree/master/tests
 
 int foo(void){
-    return 1;
+    return 4;
 }
-
 
 void maine(void){
     int i;

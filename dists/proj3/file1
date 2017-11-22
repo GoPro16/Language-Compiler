@@ -1,0 +1,17 @@
+ /* should parse */
+ int car(int x, int y)
+ {
+ 	int q;
+
+ 	q=x+4;
+
+    return q;
+ }
+
+ void main(void)
+ {
+    int i;
+    int j;
+    j = car (i, j);
+}
+

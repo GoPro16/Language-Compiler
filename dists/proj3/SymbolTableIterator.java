@@ -33,7 +33,8 @@ public class SymbolTableIterator {
 
     public void checkReturn(String type){
         tables.get(length).returnHasbeenCalled();
-        if(tables.get(length).getReturnType().equals("void")){
+        String actualReturnType = tables.get(length).getReturnType();
+        if(actualReturnType.equals("void")){
             if(!type.equals("void"))
                 semanticReject(102);
         }else{//if the returnType is void but the returnValue isn't void then throw error
@@ -41,6 +42,8 @@ public class SymbolTableIterator {
                 semanticReject(102);
             }else{//if the returnType is not void but the returned value is void then throw error
                 //Else There is a return value and now we have to check the type
+                if(!actualReturnType.equals(type))
+                    semanticReject(102);
             }
         }
     }

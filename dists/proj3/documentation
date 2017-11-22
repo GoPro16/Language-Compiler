@@ -1,0 +1,26 @@
+Kyle Gray
+N01038185
+COP 4620 Fall 2017
+
+Project 3
+Semantics
+
+Overall Design
+The semantics check comes into play during the parsing of the tokens. As the parset parses the 
+tokens, the semantic checks are spread out at certain points to make sure the program makes sense.
+Some common areas this happens at is when experssions are being evaulated, variables are being
+assigned and returning values are being checked with the function return type. After this point if
+the file is accepted then we can move onto teh intermediate code generation in which the only errors
+that can occur will be at runtime.
+
+Instructions for Running:
+> make 
+> ./p3 {Name of the program file}
+
+Files Created:
+-There are no files created by this program.
+
+Required Files:
+- *.java files
+- makefile
+- p3 script
