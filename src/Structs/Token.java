@@ -16,6 +16,37 @@ public class Token {
         this.type = type;
     }
 
+    public Token(String value, String type){
+        this.value = value;
+        switch(type){
+            case "int":
+            case "INT":
+            case "num":
+            case "NUM":
+                this.type = TokenType.NUM;
+                break;
+            case "float":
+                this.type = TokenType.FLOAT;
+                break;
+            case "floatarr":
+                this.type = TokenType.FLOATARR;
+                break;
+            case "intarr":
+                this.type = TokenType.INTARR;
+                break;
+            case "KEYWORD":
+                this.type = TokenType.KEYWORD;
+                break;
+            case "ID":
+                this.type = TokenType.ID;
+                break;
+            default:
+                this.type = TokenType.ERROR;
+                break;
+        }
+    }
+
+
     public void setType(TokenType type){
         this.type = type;
     }

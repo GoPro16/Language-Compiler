@@ -1,4 +1,5 @@
 package Structs;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -15,7 +16,7 @@ public class SymbolTable {
     private int size;	//The size of the array
     private int maxSearch;
     private boolean returnHasBeenCalled;
-    private String returnType;
+    private TokenType returnType;
     private Token functionID;
     private ArrayList<Symbol> paramsTable;
 
@@ -37,7 +38,7 @@ public class SymbolTable {
     }//end HashTable
 
 
-    public String getReturnType(){
+    public TokenType getReturnType(){
         return returnType;
     }
 
@@ -46,7 +47,7 @@ public class SymbolTable {
     }
 
 
-    public void fillFunctionInfo(String returnType,Token functionID){
+    public void fillFunctionInfo(TokenType returnType,Token functionID){
         this.returnType = returnType;
         this.functionID = functionID;
     }

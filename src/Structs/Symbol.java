@@ -5,14 +5,14 @@ import java.util.ArrayList;
 public class Symbol {
 
     private Token token;
-    private String type;
+    private TokenType type;
     private boolean arr;
     private String arrSize;
     private boolean func;
     private boolean init;
     private ArrayList<Symbol> paramsTable;
 
-    public Symbol(Token token,String type,boolean arr,String arrSize,boolean func,boolean init){
+    public Symbol(Token token,TokenType type,boolean arr,String arrSize,boolean func,boolean init){
         this.type = type;
         this.token = token;
         this.arr = arr;
@@ -21,9 +21,10 @@ public class Symbol {
         this.init = init;
     }//end constructor
 
-    public String getType(){
+    public TokenType getType(){
         return type;
     }
+
 
     public void setParamsTable(ArrayList<Symbol> paramsTable){
         this.paramsTable = paramsTable;

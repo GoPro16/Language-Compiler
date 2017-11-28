@@ -1,14 +1,13 @@
 package Main;
-
 import java.io.File;
 import java.io.IOException;
-import Main.*;
 
 public class MainClass {
     public static void main(String[] args) throws IOException {
-        Program p1 = new Program(new File(args[0]));
+        Program p1 = new Program(new File("file"));
         //p1.printList();
         Parser parser = new Parser(p1.getTokenList(),p1.getLineCount());
         parser.parse();
+        parser.printCode();
     }//end main
 }

@@ -1,0 +1,11 @@
+/* Parsing only variable declartions
+
+int sub(int x){
+return(x+x);
+}
+*/
+void main(void){
+    int x;
+    float y[4];
+    x = 4;
+}
