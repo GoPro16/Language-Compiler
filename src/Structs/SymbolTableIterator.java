@@ -166,33 +166,42 @@ public class SymbolTableIterator {
         return s;
     }
 
-    public String getTypeFromId(Token idToken,boolean indexing){
-        String s = "s";
-        System.out.println("Get Type:"+idToken.getType().toString()+" "+idToken.toString());
+    public TokenType getTypeFromId(Token idToken,boolean indexing){
+        TokenType s = TokenType.ERROR;
+        System.out.println("Get Type:"+idToken.getType().toString()+" "+idToken.toString()+ "Indexing?: "+indexing);
         current = length;
         while(current >= 0){
             if(tables.get(current).find(idToken.toString()) != null){
                 if(tables.get(current).find(idToken.toString()).isArray() && !indexing){
-                    s = tables.get(current).find(idToken.toString()).getType()+"arr";
+                    if(tables.get(current).find(idToken.toString()).getType() == TokenType.NUM){
+                        s = TokenType.NUMARR;
+                    }else{
+                        s = TokenType.FLOATARR;
+                    }
                 }else {
-                    System.out.println(tables.get(current).find(idToken.toString()).toString());
-                    s = tables.get(current).find(idToken.toString()).getType().toString();
+                    System.out.println("WTF!");
+                    s = tables.get(current).find(idToken.toString()).getType();
                 }
                 break;
             }else{
                 for(int x=0;x<tables.get(current).getParamsTable().size();x++){
                     if(tables.get(current).getParamsTable().get(x).toString().equals(idToken.toString())){
                         if(tables.get(current).getParamsTable().get(x).isArray() && !indexing){
-                            s = tables.get(current).getParamsTable().get(x).getType()+"arr";
+                            if(tables.get(current).find(idToken.toString()).getType() == TokenType.NUM){
+                                s = TokenType.NUMARR;
+                            }else{
+                                s = TokenType.FLOATARR;
+                            }
                         }else
-                            s = tables.get(current).getParamsTable().get(x).getType().toString();
+                            s = tables.get(current).getParamsTable().get(x).getType();
                         break;
                     }
                 }
             }
             current--;
         }
-        if(s.equals("s")){
+        System.out.println("Returing from GetType:" +s);
+        if(s == TokenType.ERROR){
             semanticReject(110);
         }
         return s;
@@ -203,8 +212,8 @@ public class SymbolTableIterator {
     	if(getFunctionById(functionID).getParamsTable().size() > index){
     		String s = getFunctionById(functionID).getParamsTable().get(index).getType().toString();
             if(getFunctionById(functionID).getParamsTable().get(index).isArray())
-                s+="arr";
-            System.out.println("Actual Return Type: "+s);
+                s+="ARR";
+            System.out.println("Actual Return Type: "+s + " needed: "+returnType);
             if(!s.equals(returnType)){
                 semanticReject(111);
             }
@@ -216,10 +225,12 @@ public class SymbolTableIterator {
     public int getFunctionParametersLength(Token functionID){
     	return getFunctionById(functionID).getParamsTable().size();
     }
+
     public Symbol getFunctionById(Token functionID){
         if(tables.get(0).find(functionID.toString()) != null){
             return tables.get(0).find(functionID.toString());
         }
+        System.out.println("Rejecting Function: "+functionID.toString()+" Type: "+functionID.getType());
         semanticReject(109);
         return null;
     }

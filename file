@@ -1,4 +1,4 @@
-/*
+
 int foo(void){
     return 4;
 }
@@ -22,7 +22,6 @@ void maine(void){
 
 float three[2];
 
-
 int test(int foo)
 {
     int three;
@@ -42,7 +41,7 @@ int maineee(void)
 }
 
 int bar[56];
-*/
+
 
 void output(int x,int y,int z[],int w){
     return;
@@ -91,8 +90,10 @@ return;
 
 int food(int a, int b)
 {
+    int wadsfasdfsafsad;
     input(a);
-    return test(b);
+    //suppose to return test(b)
+    return test(b)  ;
 }
 
 void mainfd(void)

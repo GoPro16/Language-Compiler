@@ -32,7 +32,7 @@ public class Token {
                 this.type = TokenType.FLOATARR;
                 break;
             case "intarr":
-                this.type = TokenType.INTARR;
+                this.type = TokenType.NUMARR;
                 break;
             case "KEYWORD":
                 this.type = TokenType.KEYWORD;
