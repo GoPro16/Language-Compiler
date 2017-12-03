@@ -1,0 +1,11 @@
+/* Parsing only variable declartions */
+
+int sub(int x){
+return(x+x);
+}
+
+void main(void){
+    int a[4];
+    int i;
+    while (1 == (a[4] + 1));
+}

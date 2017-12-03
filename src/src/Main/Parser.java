@@ -261,41 +261,70 @@ public class Parser{
 
     private void selectionStmtPrime(Token compToken){
         if(tokenList.get(walker).toString().equals("else")){
-            accept("else");
+            int lCount = lineCount;
             output.add(new Code(lineCount++,"BR","","",""));
+            accept("else");
+            String lineNum = Integer.toString(lineCount);
+            updateIfElse(compToken,lineNum);
             statement();
+            int lCountNew = lineCount;
+            output.add(new Code(lineCount++,"end","","",""));
+            updateElseBlock(lCountNew,lCount);
         }else if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT || tokenList.get(walker).toString().equals(";")||
                 tokenList.get(walker).toString().equals("{")|| tokenList.get(walker).toString().equals("if")|| tokenList.get(walker).toString().equals("while")||
                 tokenList.get(walker).toString().equals("return")|| tokenList.get(walker).toString().equals("}")){
             //Find the statement just after comp
-            String lineNum = Integer.toString(lineCount++);
-            updateLineNumber(compToken,lineNum);
-            output.add(new Code(lineCount,"end","","",""));
+            String lineNum = Integer.toString(lineCount);
+            updateIfElse(compToken,lineNum);
+            output.add(new Code(lineCount++,"end","","",""));
         }
         else
             reject();
     }
-    private void updateLineNumber(Token compToken,String lineNum){
-        System.out.println("UPDATING LINE NUMBER --------------------------------------------------------------");
+    private void updateIfElse(Token compToken,String lineNum){
         for(int i=output.size()-1;i>=0;i--){
             if(output.get(i).getFirst().equals("comp")){
                 if(output.get(i+1).getSecond().equals(compToken.toString())){
                     output.get(i+1).setFourth(lineNum);
-                    System.out.println("THISSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS");
                 }//if the t matches
+            }//if the first is equal to comp
+        }
+    }
+
+    private void updateElseBlock(int currentLine,int newLine){
+        for(int i=output.size()-1;i>=0;i--){
+            if(output.get(i).getLineNumber() == newLine){
+                output.get(i).setFourth(Integer.toString(currentLine));
             }//if the first is equal to comp
         }
     }
 
     private void iterationStmt(){
         if(tokenList.get(walker).toString().equals("while")){
+            int startOfWhile = lineCount;
             accept("while");
             accept("(");
-            expression();
+            Token compToken = expression();
             accept(")");
             statement();
+            output.add(new Code(lineCount++,"BR","","",Integer.toString(startOfWhile)));
+            //Find the statement just after comp
+            String lineNum = Integer.toString(lineCount);
+            updateIfElse(compToken,lineNum);
+            output.add(new Code(lineCount++,"end","","",""));
+
         }else
             reject();
+    }
+
+    private void updateWhile(Token compToken,String lineNum){
+        for(int i=output.size()-1;i>=0;i--){
+            if(output.get(i).getFirst().equals("comp")){
+                if(output.get(i+1).getSecond().equals(compToken.toString())){
+                    output.get(i+1).setFourth(lineNum);
+                }//if the t matches
+            }//if the first is equal to comp
+        }
     }
 
     private void returnStmt(){
@@ -312,6 +341,7 @@ public class Parser{
             accept(";");
             //Temporary making it a nonnull return type
             semanticsTable.checkReturn(returnType.getType().toString());
+            output.add(new Code(lineCount++,"ret","","",returnType.toString()));
         }else if(tokenList.get(walker).toString().equals(";")){
             accept(";");
             semanticsTable.checkReturn("void");
@@ -357,15 +387,16 @@ public class Parser{
             semanticsTable.checkTypes(leftSideType.getType().toString(),rightSideType.getType().toString());
             return rightSideType;
         }else if(tokenList.get(walker).toString().equals("(")){
+            //PASTE
+            String t = getNewT();
+            output.add(new Code(lineCount++,"call",idToken.toString(),"",t));
             accept("(");
             args(idToken);
             accept(")");
             Token leftSideType = termPrime(semanticsTable.getReturnTypeFromId(idToken));//pass the returntype of the function
             additiveExpressionPrime(leftSideType);
-            return relopExpression(leftSideType);
+            return (new Token(t,relopExpression(leftSideType).getType()));
         }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
-            System.out.println("----- BEGIN ERROR REPORTING -----");
-            System.out.println("Sending arr id(Ls):"+idToken.toString());
             Token leftSideType = varArr(idToken);
             Token rightSideType = varPrime(leftSideType);
             //Get the corresponding type from the table
@@ -386,9 +417,9 @@ public class Parser{
         }else if(tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")||
                 tokenList.get(walker).toString().equals("<=")|| tokenList.get(walker).toString().equals("<")|| tokenList.get(walker).toString().equals(">")|| tokenList.get(walker).toString().equals(">=")||
                 tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")){
-            termPrime(leftSideType);
-            additiveExpressionPrime(leftSideType);
-            return relopExpression(leftSideType);
+            Token lType = termPrime(leftSideType);
+            lType = additiveExpressionPrime(leftSideType);
+            return relopExpression(lType);
         }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
             termPrime(leftSideType);
             additiveExpressionPrime(leftSideType);
@@ -406,14 +437,13 @@ public class Parser{
                 reject();
 
             Token returnType = expression();//We may have to come back to this
-            System.out.println("Array must be int:"+returnType.getType());
             if(returnType.getType() != TokenType.NUM)
                 semanticsTable.semanticReject(112);
             accept("]");
             String t = getNewT();
             try {
                 Integer.parseInt(returnType.toString());
-                output.add(new Code(lineCount++,"disp",Integer.toString(Integer.parseInt(returnType.toString())*4),"",t));
+                output.add(new Code(lineCount++,"disp",idToken.toString(),Integer.toString(Integer.parseInt(returnType.toString())*4),t));
             } catch (NumberFormatException ignored) {
                 output.add(new Code(lineCount++,"mult",returnType.toString(),"4",t));
                 String oldT = t;
@@ -421,13 +451,11 @@ public class Parser{
                 output.add(new Code(lineCount++,"disp",idToken.toString(),oldT,t));
             }
             //returning the get type by id must be returning error?
-            System.out.println("THIS SHOULD PRINT BEFORE Get Type:");
             return (new Token(t,semanticsTable.getTypeFromId(idToken,true)));
         }else if(tokenList.get(walker).toString().equals("=")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")|| tokenList.get(walker).toString().equals("+")||
                 tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("<=") || tokenList.get(walker).toString().equals("<") || tokenList.get(walker).toString().equals(">")||
                 tokenList.get(walker).toString().equals(">=")|| tokenList.get(walker).toString().equals("==")|| tokenList.get(walker).toString().equals("!=")|| tokenList.get(walker).toString().equals(";")||
                 tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(",")){
-            System.out.println("THIS SHOULD NOTT PRINT BEFORE Get Type:");
             return (new Token(idToken.toString(),semanticsTable.getTypeFromId(idToken,false)));
         } else{
             reject();
@@ -444,7 +472,7 @@ public class Parser{
             String t = getNewT();
             output.add(new Code(lineCount++,"comp",leftSideType.toString(),rightSideType.toString(),t));
             output.add(new Code(lineCount++,op,t,"",""));
-            return rightSideType;
+            return new Token(t,rightSideType.getType());
         }else if(tokenList.get(walker).toString().equals(";")|| tokenList.get(walker).toString().equals(")")|| tokenList.get(walker).toString().equals("]")|| tokenList.get(walker).toString().equals(","))
             return leftSideType;
         else{
@@ -482,13 +510,13 @@ public class Parser{
             Token rightSideType = expression();
             accept(")");
             semanticsTable.checkTypes(rightSideType.getType().toString(),leftSideType.getType().toString());
-            termPrime(leftSideType);
-            return additiveExpressionPrime(leftSideType);
+            rightSideType = termPrime(rightSideType);
+            return additiveExpressionPrime(rightSideType);
         } else if (tokenList.get(walker).getType() == TokenType.ID) {
             Token rightSideType = call(accept("id"));
             semanticsTable.checkTypes(rightSideType.getType().toString(), leftSideType.getType().toString());
-            termPrime(leftSideType);
-            return additiveExpressionPrime(leftSideType);
+            rightSideType = termPrime(leftSideType);
+            return additiveExpressionPrime(rightSideType);
         } else if (tokenList.get(walker).getType() == TokenType.NUM) {
             Token rightSideType = new Token(accept("num").toString(),TokenType.NUM);
             rightSideType = termPrime(rightSideType);
@@ -606,10 +634,12 @@ public class Parser{
 
     private Token call(Token idToken){
         if (tokenList.get(walker).toString().equals("(")){
+            String t = getNewT();
+            output.add(new Code(lineCount++,"call",idToken.toString(),"",t));
             accept("(");
             args(idToken);
             accept(")");
-            return semanticsTable.getReturnTypeFromId(idToken);
+            return new Token(t,semanticsTable.getReturnTypeFromId(idToken).getType());
         }else if (tokenList.get(walker).toString().equals("[")){
             return varArr(idToken);
         }else if(tokenList.get(walker).toString().equals("+")|| tokenList.get(walker).toString().equals("-")|| tokenList.get(walker).toString().equals("*")|| tokenList.get(walker).toString().equals("/")||
@@ -641,6 +671,7 @@ public class Parser{
         if(tokenList.get(walker).getType() == TokenType.ID || tokenList.get(walker).toString().equals("(")|| tokenList.get(walker).getType() == TokenType.NUM || tokenList.get(walker).getType() == TokenType.FLOAT){
             Token returnType = expression();
             semanticsTable.checkFunctionParameters(functionId,0,returnType.getType().toString());
+            output.add(new Code(lineCount++,"arg","","",returnType.toString()));
             int lastIndex = argListPrime(functionId,1);
             if(lastIndex != semanticsTable.getFunctionParametersLength(functionId)) {
 
@@ -654,8 +685,6 @@ public class Parser{
         if(tokenList.get(walker).toString().equals(",")){
             accept(",");
             Token returnType = expression();
-            System.out.println("Return TYPE (String)!: "+returnType.toString()+" (Type):"+returnType.getType().toString());
-
             semanticsTable.checkFunctionParameters(functionId,index,returnType.getType().toString());
             return argListPrime(functionId,index+1);
         }else if(tokenList.get(walker).toString().equals(")"))
@@ -668,7 +697,7 @@ public class Parser{
     }
 
     private Token accept(String value){
-        System.out.println("Accepting:"+tokenList.get(walker).toString());
+        //System.out.println("Accepting:"+tokenList.get(walker).toString());
         if(!(tokenList.get(walker).equals(null))){
             switch(tokenList.get(walker).getType()) {
                 case ID:

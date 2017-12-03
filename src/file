@@ -1,43 +1,9 @@
-//Test files found @ https://github.com/benfowler/c-minus/tree/master/tests
 
-
-
-int main(void){
-int  x;
-{
-    {
-        int x;
-    }
-    {
-        int x;
-    }
-    }
+int foo(void){
+    return 4;
 }
 
-/*
-int i;
-int j;
-
-int array[20];
-
-float foo(int i, int j){
-    int a;
-    int b[20];
-    //int b;
-}
-
-int bar(void)
-{
-}
-
-int foo(void)
-{
-    return 1;
-}
-
-
-void main(void)
-{
+void maine(void){
     int i;
     int a[30];
 
@@ -46,21 +12,15 @@ void main(void)
 
     a[a[1]] = 3 / 3;
 
-    while (1 == (a[4] + 1)) ;
-
-    return a[45];
+    while (1 == (a[4] + 1));
 
     c = foo();
-
-    c = input();
-    output(c);
 
     i = 2;
     i = 4;
 }
 
 float three[2];
-
 
 int test(int foo)
 {
@@ -70,91 +30,85 @@ int test(int foo)
         int three;
         int four;
     }
+    return 2;
 }
 
-int main(void)
+int maineee(void)
 {
     int gh[45];
 
-    test(4);
+    return test(4);
 }
 
 int bar[56];
-void baz;
+
+
+void output(int x,int y,int z[],int w){
+    return;
+}
 
 int foobar(int one, int two[], void three) {
    int foo;
    int bar[56];
-   void baz;
-
-   if (foo == arr[4])
+    /*
+   if (foo == bar[4])
    {
-       if (bar == 3.5)
-           output(3);
+       if (bar[2] == 35)
+           test(3);
    }
    else
-       output(2, foo, foo[bar], foo[bar/2]);
+       output(2, bar[2], bar, bar[foo*2]);
+       */
+       output(2, bar[2], bar, bar[foo*2]);
 
-   return baz[45];
+   return bar[45];
 }
 
 void quux(void) {}
 
+int foobarr(int one, int two[], void three) {
 int foo;
 int bar[56];
-void baz;
 
-int foobar(int one, int two[], void three) {
-int foo;
-int bar[56];
-void baz;
+   bar[foo] = 1 + 1;
 
-   baz = 1 + 1;
-
-   return baz[45];
+   return bar[45];
 }
 
-void quux(void) {}
+
+void quuxeeee(void) {}
 
 int i;
 int j;
 
-int array[20E3];
+int array[20];
 
 
-void main(void)
+void input(int y){
+return;
+}
+
+int food(int a, int b)
 {
+    int wadsfasdfsafsad;
+    input(a);
+    //suppose to return test(b)
+    return test(b)  ;
+}
+
+void mainfd(void)
+{
+    food(42, 21);
+}
+
+
+void mainddea(void)
+{
+    float b[20];
     int i;
 
-    i = 0;
-
-    if (i == 5)
-        output(1);
-    else
-        output(0);
-
-    output(i);
-}
-
-int foo(int a, int b)
-{
-    output(a);
-    output(b);
-}
-
-
-void main(void)
-{
-    foo(42, 21);
-}
-
-void main(void)
-{
-    float b[20E+2];
-    int i;
-
-    b[0] = 21;
-    output(b[0]);
+    b[0] = 21.3;
+    input(i);
 }
 
 void main(void)
@@ -166,7 +120,6 @@ void main(void)
     while (i < 10)
     {
         i = i + 1;
-        output(i);
+        input(i);
     }
 }
-*/

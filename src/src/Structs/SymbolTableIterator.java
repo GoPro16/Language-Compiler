@@ -29,13 +29,11 @@ public class SymbolTableIterator {
     }
 
     public void checkTypes(String leftSideType,String rightSideType){
-        System.out.println("Left Side:"+leftSideType+" Right Side:"+ rightSideType);
         if(!leftSideType.equals(rightSideType))
             semanticReject(108);
     }
 
     public void checkReturn(String type){
-        System.out.println(type);
         tables.get(length).returnHasbeenCalled();
         String actualReturnType = tables.get(length).getReturnType().toString();
         if(actualReturnType.equals("VOID")){
@@ -168,7 +166,6 @@ public class SymbolTableIterator {
 
     public TokenType getTypeFromId(Token idToken,boolean indexing){
         TokenType s = TokenType.ERROR;
-        System.out.println("Get Type:"+idToken.getType().toString()+" "+idToken.toString()+ "Indexing?: "+indexing);
         current = length;
         while(current >= 0){
             if(tables.get(current).find(idToken.toString()) != null){
@@ -179,7 +176,6 @@ public class SymbolTableIterator {
                         s = TokenType.FLOATARR;
                     }
                 }else {
-                    System.out.println("WTF!");
                     s = tables.get(current).find(idToken.toString()).getType();
                 }
                 break;
@@ -200,7 +196,6 @@ public class SymbolTableIterator {
             }
             current--;
         }
-        System.out.println("Returing from GetType:" +s);
         if(s == TokenType.ERROR){
             semanticReject(110);
         }
@@ -208,12 +203,10 @@ public class SymbolTableIterator {
     }
 
     public void checkFunctionParameters(Token functionID,int index,String returnType){
-        System.out.println(returnType+" function: "+functionID.toString());
     	if(getFunctionById(functionID).getParamsTable().size() > index){
     		String s = getFunctionById(functionID).getParamsTable().get(index).getType().toString();
             if(getFunctionById(functionID).getParamsTable().get(index).isArray())
                 s+="ARR";
-            System.out.println("Actual Return Type: "+s + " needed: "+returnType);
             if(!s.equals(returnType)){
                 semanticReject(111);
             }
@@ -230,7 +223,6 @@ public class SymbolTableIterator {
         if(tables.get(0).find(functionID.toString()) != null){
             return tables.get(0).find(functionID.toString());
         }
-        System.out.println("Rejecting Function: "+functionID.toString()+" Type: "+functionID.getType());
         semanticReject(109);
         return null;
     }
@@ -251,7 +243,7 @@ public class SymbolTableIterator {
 
     public void semanticReject(int status){
         System.out.println("REJECT");
-        printReport(status);
+        //printReport(status);
         System.exit(0);
     }
 
